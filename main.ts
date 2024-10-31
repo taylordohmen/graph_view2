@@ -1,20 +1,32 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, WorkspaceLeaf } from 'obsidian';
+import { SigmaGraphView, VIEW_TYPE_SIGMA } from 'sigma-graph-view';
 
-// Remember to rename these classes and interfaces!
-
-interface MyPluginSettings {
+interface SigmaGraphPluginSettings {
 	mySetting: string;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
+const DEFAULT_SETTINGS: SigmaGraphPluginSettings = {
 	mySetting: 'default'
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class SigmaGraphPlugin extends Plugin {
+	
+  settings: SigmaGraphPluginSettings;
 
 	async onload() {
 		await this.loadSettings();
+
+    console.log("Loading Sigma Graph View...");
+
+    this.registerView(
+      VIEW_TYPE_SIGMA,
+      (leaf) => new SigmaGraphView(leaf)
+    );
+
+    // Add command to open custom graph view
+    this.addRibbonIcon("dot-network", "Open Custom Graph View", () => {
+      this.openSigmaGraphView();
+    });
 
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
@@ -66,7 +78,7 @@ export default class MyPlugin extends Plugin {
 		});
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		this.addSettingTab(new SigmaGraphSettingTab(this.app, this));
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
@@ -89,6 +101,26 @@ export default class MyPlugin extends Plugin {
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
+
+  async openSigmaGraphView() {
+    const { workspace } = this.app;
+
+    let leaf: WorkspaceLeaf | null = null;
+    const leaves = workspace.getLeavesOfType(VIEW_TYPE_SIGMA);
+
+    if (leaves.length > 0) {
+      // A leaf with our view already exists, use that
+      leaf = leaves[0];
+    } else {
+      // Our view could not be found in the workspace, create a new leaf
+      leaf = workspace.getLeaf();
+      await leaf.setViewState({ type: VIEW_TYPE_SIGMA, active: true });
+    }
+
+    // "Reveal" the leaf in case it is in a collapsed sidebar
+    workspace.revealLeaf(leaf);
+  }
+
 }
 
 class SampleModal extends Modal {
@@ -107,10 +139,10 @@ class SampleModal extends Modal {
 	}
 }
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+class SigmaGraphSettingTab extends PluginSettingTab {
+	plugin: SigmaGraphPlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: SigmaGraphPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
