@@ -70,32 +70,26 @@ export class SigmaGraphView extends ItemView {
                             weight: 1,
                             color: '#bababa'
                         });
-
-                        if (this.graph.getNodeAttribute(file.path, 'person')) {
-                            this.graph.updateNodeAttribute(file.path, 'size', n => n + 1/n);
-                        }
-                        else if (file.path.contains('People/')) {
-                            this.graph.setNodeAttribute(file.path, 'person', true);
-                            this.graph.updateNodeAttribute(file.path, 'size', n => n + 1/n);
-                        } else {
-                            this.graph.setNodeAttribute(file.path, 'person', false);
-                        }
-
-                        if (this.graph.getNodeAttribute(targetFile.path, 'person')) {
-                            this.graph.updateNodeAttribute(targetFile.path, 'size', n => n + 1/n);
-                        } else if (targetFile.path.contains('People/')) {
-                            this.graph.setNodeAttribute(targetFile.path, 'person', true);
-                            this.graph.updateNodeAttribute(targetFile.path, 'size', n => n + 1/n);
-                        } else {
-                            this.graph.setNodeAttribute(targetFile.path, 'person', false);
-                        }
-
                     } catch (e) {
                         // Handle cases where the edge already exists
                         console.debug('Edge already exists', e);
                     }
+                    this.updateNodeAttributes(file.path);
+                    this.updateNodeAttributes(targetFile.path);
                 }
             }
+        }
+    }
+
+    private updateNodeAttributes(node: string) {
+        if (this.graph.getNodeAttribute(node, 'person')) {
+            this.graph.updateNodeAttribute(node, 'size', n => n + 1/n**2);
+        }
+        else if (node.contains('People/')) {
+            this.graph.setNodeAttribute(node, 'person', true);
+            this.graph.updateNodeAttribute(node, 'size', n => n + 1/n**2);
+        } else {
+            this.graph.setNodeAttribute(node, 'person', false);
         }
     }
 
@@ -110,18 +104,11 @@ export class SigmaGraphView extends ItemView {
         this.container.style.top = '0';
         this.container.style.left = '0';
 
+        // compute communities and assign one to each node as an attribute
         louvain.assign(this.graph);
 
-        console.log(louvain.detailed(this.graph))
-
-        // assign random positions to the nodes
-        circlepack.assign(this.graph, { hierarchyAttributes: ['community'], scale: 0.25 })
-        // const fa2settings = forceAtlas2.inferSettings(this.graph);
-        // const layout = new FA2Layout(this.graph, { settings: fa2settings });
-        // const layout = new NoverlapLayout(this.graph);
-
-        // console.log('STARTING LAYOUT');
-        // layout.start()
+        // assign an (x, y) coordinate each node that respects the louvain communties
+        circlepack.assign(this.graph, { hierarchyAttributes: ['community'] })
 
         // Configure and initialize Sigma renderer
         this.renderer = new Sigma(this.graph, this.container, {
@@ -131,6 +118,12 @@ export class SigmaGraphView extends ItemView {
             // defaultNodeSize: 10,
             minCameraRatio: 0.01,
             maxCameraRatio: 100,
+            // This function tells sigma to grow sizes linearly with the zoom, instead of relatively to the zoom ratio's square root:
+            // zoomToSizeRatioFunction: (x) => x,
+            // If set to false, this disables the default sigma rescaling, so that by default, positions and sizes are preserved on screen (in pixels):
+            autoRescale: false,
+            // This flag tells sigma to disable the nodes and edges sizes interpolation and instead scales them in the same way it handles positions:
+            itemSizesReference: "positions"
         });
 
         // Add interactivity

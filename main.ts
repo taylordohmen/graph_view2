@@ -165,6 +165,7 @@ import { SigmaGraphView, VIEW_TYPE_SIGMA } from 'sigma-graph-view';
 
 // Main plugin class
 export default class SigmaGraphPlugin extends Plugin {
+    
     async onload() {
         // Register the custom view
         this.registerView(
