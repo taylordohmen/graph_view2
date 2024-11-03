@@ -1,22 +1,24 @@
-import { ItemView, WorkspaceLeaf } from 'obsidian';
+import { ItemView, WorkspaceLeaf, ButtonComponent } from 'obsidian';
 import Graph from 'graphology';
-import { random, circular, circlepack } from 'graphology-layout';
-import forceAtlas2 from 'graphology-layout-forceatlas2';
-import FA2Layout from 'graphology-layout-forceatlas2/worker';
-import NoverlapLayout from 'graphology-layout-noverlap/worker';
+import { circlepack } from 'graphology-layout';
 import louvain from 'graphology-communities-louvain';
 import Sigma from 'sigma';
+import { fitViewportToNodes } from "@sigma/utils";
+import iwanthue from 'iwanthue';
 
 export const VIEW_TYPE_SIGMA = 'sigma-graph-view';
 
 // Custom View class for the graph
 export class SigmaGraphView extends ItemView {
+
     private container: HTMLElement;
     private graph: Graph;
     private renderer: Sigma;
+    private fitToViewButton: ButtonComponent;
 
     constructor(leaf: WorkspaceLeaf) {
         super(leaf);
+        this.navigation = true;
         this.container = this.contentEl.createDiv({ cls: 'sigma-graph-container' });
     }
 
@@ -29,12 +31,12 @@ export class SigmaGraphView extends ItemView {
     }
 
     async onOpen() {
-        // Initialize the graph
-        this.initializeGraph();
-        // Build the graph data
+        // Build the graph
         await this.buildGraphData();
         // Render the graph
         await this.renderGraph();
+
+        await this.enableHoverEffects();
     }
 
     async onClose() {
@@ -43,11 +45,9 @@ export class SigmaGraphView extends ItemView {
         }
     }
 
-    private initializeGraph() {
-        this.graph = new Graph({ type: 'undirected' });
-    }
-
     private async buildGraphData() {
+        this.graph = new Graph({ type: 'undirected' });
+
         const files = this.app.vault.getMarkdownFiles();
 
         // Add nodes for each file
@@ -83,11 +83,11 @@ export class SigmaGraphView extends ItemView {
 
     private updateNodeAttributes(node: string) {
         if (this.graph.getNodeAttribute(node, 'person')) {
-            this.graph.updateNodeAttribute(node, 'size', n => n + 1/n**2);
+            this.graph.updateNodeAttribute(node, 'size', n => n + 1 / n ** 2);
         }
         else if (node.contains('People/')) {
             this.graph.setNodeAttribute(node, 'person', true);
-            this.graph.updateNodeAttribute(node, 'size', n => n + 1/n**2);
+            this.graph.updateNodeAttribute(node, 'size', n => n + 1 / n ** 2);
         } else {
             this.graph.setNodeAttribute(node, 'person', false);
         }
@@ -106,6 +106,18 @@ export class SigmaGraphView extends ItemView {
 
         // compute communities and assign one to each node as an attribute
         louvain.assign(this.graph);
+        const communities = new Set<string>();
+        this.graph.forEachNode((_, attrs) => communities.add(attrs.community));
+        const communitiesArray = Array.from(communities);
+
+        // Determine colors, and color each node accordingly
+        const palette: Record<string, string> = iwanthue(communities.size).reduce(
+            (iter, color, i) => ({ ...iter, [communitiesArray[i]]: color}),
+            {},
+        );
+        this.graph.forEachNode(
+            (node, attr) => this.graph.setNodeAttribute(node, "color", palette[attr.community])
+        );
 
         // assign an (x, y) coordinate each node that respects the louvain communties
         circlepack.assign(this.graph, { hierarchyAttributes: ['community'] })
@@ -113,9 +125,6 @@ export class SigmaGraphView extends ItemView {
         // Configure and initialize Sigma renderer
         this.renderer = new Sigma(this.graph, this.container, {
             renderEdgeLabels: false,
-            defaultNodeColor: '#67B7D1',
-            defaultEdgeColor: '#bababa',
-            // defaultNodeSize: 10,
             minCameraRatio: 0.01,
             maxCameraRatio: 100,
             // This function tells sigma to grow sizes linearly with the zoom, instead of relatively to the zoom ratio's square root:
@@ -124,17 +133,11 @@ export class SigmaGraphView extends ItemView {
             autoRescale: false,
             // This flag tells sigma to disable the nodes and edges sizes interpolation and instead scales them in the same way it handles positions:
             itemSizesReference: "positions"
-        });
+        });        
+    }
 
-        // Add interactivity
-        // this.renderer.on('clickNode', ({ node }) => {
-        //     const file = this.app.vault.getAbstractFileByPath(node);
-        //     if (file instanceof TFile) {
-        //         this.app.workspace.activeLeaf.openFile(file);
-        //     }
-        // });
+    private async enableHoverEffects(){
 
-        // Add hover effects
         this.renderer.on('enterNode', ({ node }) => {
             this.graph.setNodeAttribute(node, 'highlighted', true);
             if (this.graph.getNodeAttribute(node, 'person')) {
@@ -148,7 +151,6 @@ export class SigmaGraphView extends ItemView {
                     }
                 );
             }
-            
         });
 
         this.renderer.on('leaveNode', ({ node }) => {
@@ -165,5 +167,9 @@ export class SigmaGraphView extends ItemView {
                 );
             }
         });
+    }
+
+    public fitToView() {
+        fitViewportToNodes(this.renderer, this.graph.nodes());
     }
 }

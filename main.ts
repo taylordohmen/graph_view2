@@ -190,6 +190,26 @@ export default class SigmaGraphPlugin extends Plugin {
                 this.activateView();
             }
         });
+
+        // This adds a complex command that can check whether the current state of the app allows execution of the command
+		this.addCommand({
+			id: 'fit-sigma-graph-to-view',
+			name: 'Fit sigma graph to view',
+			checkCallback: (checking: boolean) => {
+				// Conditions to check
+				const sigmaView = this.app.workspace.getActiveViewOfType(SigmaGraphView);
+				if (sigmaView) {
+					// If checking is true, we're simply "checking" if the command can be run.
+					// If checking is false, then we want to actually perform the operation.
+					if (!checking) {
+						sigmaView.fitToView();
+					}
+
+					// This command will only show up in Command Palette when the check function returns true
+					return true;
+				}
+			}
+		});
     }
 
     async onunload() { }
