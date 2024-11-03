@@ -1,7 +1,8 @@
-import { ItemView, WorkspaceLeaf, ButtonComponent } from 'obsidian';
+import { ItemView, WorkspaceLeaf } from 'obsidian';
 import Graph from 'graphology';
 import { circlepack } from 'graphology-layout';
 import louvain from 'graphology-communities-louvain';
+import * as gexf from 'graphology-gexf';
 import Sigma from 'sigma';
 import { fitViewportToNodes } from "@sigma/utils";
 import iwanthue from 'iwanthue';
@@ -14,7 +15,6 @@ export class SigmaGraphView extends ItemView {
     private container: HTMLElement;
     private graph: Graph;
     private renderer: Sigma;
-    private fitToViewButton: ButtonComponent;
 
     constructor(leaf: WorkspaceLeaf) {
         super(leaf);
@@ -30,7 +30,7 @@ export class SigmaGraphView extends ItemView {
         return 'Sigma Graph View';
     }
 
-    async onOpen() {
+    async onOpen(): Promise<void> {
         // Build the graph
         await this.buildGraphData();
         // Render the graph
@@ -39,13 +39,13 @@ export class SigmaGraphView extends ItemView {
         await this.enableHoverEffects();
     }
 
-    async onClose() {
+    async onClose(): Promise<void> {
         if (this.renderer) {
             this.renderer.kill();
         }
     }
 
-    private async buildGraphData() {
+    private async buildGraphData(): Promise<void> {
         this.graph = new Graph({ type: 'undirected' });
 
         const files = this.app.vault.getMarkdownFiles();
@@ -81,7 +81,7 @@ export class SigmaGraphView extends ItemView {
         }
     }
 
-    private updateNodeAttributes(node: string) {
+    private updateNodeAttributes(node: string): void {
         if (this.graph.getNodeAttribute(node, 'person')) {
             this.graph.updateNodeAttribute(node, 'size', n => n + 1 / n ** 2);
         }
@@ -93,7 +93,7 @@ export class SigmaGraphView extends ItemView {
         }
     }
 
-    private async renderGraph() {
+    private async renderGraph(): Promise<void> {
         // Clear the container
         this.container.empty();
 
@@ -136,7 +136,7 @@ export class SigmaGraphView extends ItemView {
         });        
     }
 
-    private async enableHoverEffects(){
+    private async enableHoverEffects(): Promise<void> {
 
         this.renderer.on('enterNode', ({ node }) => {
             this.graph.setNodeAttribute(node, 'highlighted', true);
@@ -146,7 +146,7 @@ export class SigmaGraphView extends ItemView {
                     (neighbor) => {
                         if (this.graph.getNodeAttribute(neighbor, 'person')) {
                             this.graph.setNodeAttribute(neighbor, 'highlighted', true);
-                            this.graph.setEdgeAttribute(node, neighbor, 'highlighted', true);
+                            // this.graph.setEdgeAttribute(node, neighbor, 'highlighted', true);
                         }
                     }
                 );
@@ -161,7 +161,7 @@ export class SigmaGraphView extends ItemView {
                     (neighbor) => {
                         if (this.graph.getNodeAttribute(neighbor, 'person')) {
                             this.graph.setNodeAttribute(neighbor, 'highlighted', false);
-                            this.graph.setEdgeAttribute(node, neighbor, 'highlighted', false);
+                            // this.graph.setEdgeAttribute(node, neighbor, 'highlighted', false);
                         }
                     }
                 );
@@ -169,7 +169,11 @@ export class SigmaGraphView extends ItemView {
         });
     }
 
-    public fitToView() {
+    public fitToView(): void  {
         fitViewportToNodes(this.renderer, this.graph.nodes());
+    }
+
+    public gexfString(): string {
+        return gexf.write(this.graph);
     }
 }
