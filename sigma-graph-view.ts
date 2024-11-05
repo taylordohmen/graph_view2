@@ -35,7 +35,7 @@ export class SigmaGraphView extends ItemView {
         await this.buildGraphData();
         // Render the graph
         await this.renderGraph();
-
+        // define event listeners for hover behavior
         await this.enableHoverEffects();
     }
 
