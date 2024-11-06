@@ -125,6 +125,7 @@ export class SigmaGraphView extends ItemView {
         // Configure and initialize Sigma renderer
         this.renderer = new Sigma(this.graph, this.container, {
             renderEdgeLabels: false,
+            renderLabels: false,
             minCameraRatio: 0.01,
             maxCameraRatio: 100,
             // This function tells sigma to grow sizes linearly with the zoom, instead of relatively to the zoom ratio's square root:
