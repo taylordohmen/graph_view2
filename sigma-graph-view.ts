@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf } from 'obsidian';
+import { ItemView, TFile, WorkspaceLeaf } from 'obsidian';
 import Graph from 'graphology';
 import { circlepack } from 'graphology-layout';
 import louvain from 'graphology-communities-louvain';
@@ -37,6 +37,8 @@ export class SigmaGraphView extends ItemView {
         await this.renderGraph();
         // define event listeners for hover behavior
         await this.enableHoverEffects();
+
+        await this.enableCtrlClick();
     }
 
     async onClose(): Promise<void> {
@@ -124,6 +126,7 @@ export class SigmaGraphView extends ItemView {
 
         // Configure and initialize Sigma renderer
         this.renderer = new Sigma(this.graph, this.container, {
+            allowInvalidContainer: true,
             renderEdgeLabels: false,
             renderLabels: false,
             minCameraRatio: 0.01,
@@ -167,6 +170,14 @@ export class SigmaGraphView extends ItemView {
                     }
                 );
             }
+        });
+    }
+
+    private async enableCtrlClick(): Promise<void> {
+        this.renderer.on('rightClickNode', async ({ node }) => {
+            const newTab: WorkspaceLeaf = this.app.workspace.getLeaf('tab');
+            const nodeFile: TFile = this.app.vault.getFileByPath(node);
+            await newTab.openFile(nodeFile);
         });
     }
 

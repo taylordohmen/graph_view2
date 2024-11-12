@@ -1,5 +1,6 @@
 import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { SigmaGraphView, VIEW_TYPE_SIGMA } from 'sigma-graph-view';
+import { SigmaControlView, VIEW_TYPE_SIGMA_CONTROL } from 'sigma-control-view';
 
 // Main plugin class
 export default class SigmaGraphPlugin extends Plugin {
@@ -11,12 +12,17 @@ export default class SigmaGraphPlugin extends Plugin {
             (leaf: WorkspaceLeaf) => new SigmaGraphView(leaf)
         );
 
+        this.registerView(
+            VIEW_TYPE_SIGMA_CONTROL,
+            (leaf: WorkspaceLeaf) => new SigmaControlView(leaf)
+        );
+
         // Add ribbon icon
         this.addRibbonIcon(
             'dot-network',
             'Open Sigma Graph View',
             (evt: MouseEvent) => {
-                this.activateView();
+                this.activateGraphView();
             }
         );
 
@@ -25,7 +31,7 @@ export default class SigmaGraphPlugin extends Plugin {
             id: 'open-sigma-graph-view',
             name: 'Open Sigma Graph View',
             callback: () => {
-                this.activateView();
+                this.activateGraphView();
             }
         });
 
@@ -71,7 +77,7 @@ export default class SigmaGraphPlugin extends Plugin {
 
     async onunload() { }
 
-    async activateView() {
+    private async activateGraphView() {
         const { workspace } = this.app;
 
         let leaf: WorkspaceLeaf | null;
@@ -88,5 +94,27 @@ export default class SigmaGraphPlugin extends Plugin {
 
         // Reveal the leaf
         workspace.revealLeaf(leaf);
+
+        await this.activateControlView();
     }
+
+    private async activateControlView() {
+        const { workspace } = this.app;
+    
+        let leaf: WorkspaceLeaf | null = null;
+        const leaves = workspace.getLeavesOfType(VIEW_TYPE_SIGMA_CONTROL);
+    
+        if (leaves.length > 0) {
+          // A leaf with our view already exists, use that
+          leaf = leaves[0];
+        } else {
+          // Our view could not be found in the workspace, create a new leaf
+          // in the right sidebar for it
+          leaf = workspace.getRightLeaf(false);
+          await leaf.setViewState({ type: VIEW_TYPE_SIGMA_CONTROL, active: true });
+        }
+    
+        // "Reveal" the leaf in case it is in a collapsed sidebar
+        workspace.revealLeaf(leaf);
+      }
 }
