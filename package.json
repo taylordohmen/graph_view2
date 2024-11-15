@@ -22,6 +22,7 @@
 		"typescript": "4.7.4"
 	},
 	"dependencies": {
+		"@sigma/node-image": "^3.0.0-beta.16",
 		"@sigma/utils": "^3.0.0-beta.6",
 		"graphology": "^0.25.4",
 		"graphology-communities-louvain": "^2.0.1",

@@ -1,9 +1,13 @@
 import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
 import Graph from "graphology";
-import { circlepack } from "graphology-layout";
+import { circlepack, circular, random } from "graphology-layout";
+import FA2Layout from "graphology-layout-forceatlas2/worker";
+import forceAtlas2 from "graphology-layout-forceatlas2";
+import NoverlapLayout from "graphology-layout-noverlap/worker";
 import louvain from "graphology-communities-louvain";
 import * as gexf from "graphology-gexf";
 import Sigma from "sigma";
+import { animateNodes } from "sigma/utils";
 import { fitViewportToNodes } from "@sigma/utils";
 import iwanthue from "iwanthue";
 
@@ -14,6 +18,9 @@ export class SigmaGraphView extends ItemView {
 	private container: HTMLElement;
 	private graph: Graph;
 	private renderer: Sigma;
+	private cancelCurrentAnimation: (() => void) | null;
+	private fa2Layout: FA2Layout;
+	private noverlapLayout: NoverlapLayout;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
@@ -21,6 +28,8 @@ export class SigmaGraphView extends ItemView {
 		this.container = this.contentEl.createDiv({
 			cls: "sigma-graph-container",
 		});
+
+		this.cancelCurrentAnimation = null;
 	}
 
 	getViewType(): string {
@@ -40,9 +49,21 @@ export class SigmaGraphView extends ItemView {
 		await this.enableHoverEffects();
 
 		await this.enableRightClick();
+
+		const sensibleSettings = forceAtlas2.inferSettings(this.graph);
+		this.fa2Layout = new FA2Layout(this.graph, {
+			settings: sensibleSettings,
+		});
+		this.noverlapLayout = new NoverlapLayout(this.graph);
 	}
 
 	async onClose(): Promise<void> {
+		if (this.fa2Layout) {
+			this.fa2Layout.kill();
+		}
+		if (this.noverlapLayout) {
+			this.noverlapLayout.kill();
+		}
 		if (this.renderer) {
 			this.renderer.kill();
 		}
@@ -58,7 +79,9 @@ export class SigmaGraphView extends ItemView {
 			this.graph.addNode(file.path, {
 				label: file.basename,
 				size: 1,
-				nonpaper: (file.parent?.name === "People" || file.parent?.name === file.basename)
+				nonpaper:
+					file.parent?.name === "People" ||
+					file.parent?.name === file.basename,
 			});
 		}
 
@@ -152,7 +175,6 @@ export class SigmaGraphView extends ItemView {
 							"highlighted",
 							true
 						);
-						// this.graph.setEdgeAttribute(node, neighbor, 'highlighted', true);
 					}
 				});
 			}
@@ -168,7 +190,6 @@ export class SigmaGraphView extends ItemView {
 							"highlighted",
 							false
 						);
-						// this.graph.setEdgeAttribute(node, neighbor, 'highlighted', false);
 					}
 				});
 			}
@@ -189,5 +210,69 @@ export class SigmaGraphView extends ItemView {
 
 	public gexfString(): string {
 		return gexf.write(this.graph);
+	}
+
+	public circularLayout(): void {
+		if (this.cancelCurrentAnimation) {
+			this.cancelCurrentAnimation();
+		}
+		//since we want to use animations we need to process positions before applying them through animateNodes
+		const circularPositions = circular(this.graph, { scale: 500 });
+		//In other context, it's possible to apply the position directly we : circular.assign(graph, {scale:100})
+		this.cancelCurrentAnimation = animateNodes(
+			this.graph,
+			circularPositions,
+			{ duration: 2000, easing: "linear" }
+		);
+	}
+
+	public randomLayout(): void {
+		if (this.cancelCurrentAnimation) {
+			this.cancelCurrentAnimation();
+		}
+		//since we want to use animations we need to process positions before applying them through animateNodes
+		const randomPositions = random(this.graph, { scale: 1000 });
+		this.cancelCurrentAnimation = animateNodes(
+			this.graph,
+			randomPositions,
+			{ duration: 2000, easing: "linear" }
+		);
+	}
+
+	public circlepackLayout(): void {
+		if (this.cancelCurrentAnimation) {
+			this.cancelCurrentAnimation();
+		}
+		//since we want to use animations we need to process positions before applying them through animateNodes
+		const circlepackPositions = circlepack(this.graph, {
+			hierarchyAttributes: ["community"],
+		});
+		this.cancelCurrentAnimation = animateNodes(
+			this.graph,
+			circlepackPositions,
+			{ duration: 2000, easing: "linear" }
+		);
+	}
+
+	public toggleFA2Layout(): void {
+		if (this.fa2Layout.isRunning()) {
+			this.fa2Layout.stop();
+		} else {
+			if (this.cancelCurrentAnimation) {
+				this.cancelCurrentAnimation();
+			}
+			this.fa2Layout.start();
+		}
+	}
+
+	public async toggleNoverlapLayout(): void {
+		if (this.noverlapLayout.isRunning()) {
+			this.noverlapLayout.stop();
+		} else {
+			if (this.cancelCurrentAnimation) {
+				this.cancelCurrentAnimation();
+			}
+			this.noverlapLayout.start();
+		}
 	}
 }
