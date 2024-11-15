@@ -1,47 +1,36 @@
-import { Plugin, WorkspaceLeaf } from "obsidian";
-import { SigmaGraphView, VIEW_TYPE_SIGMA } from "sigma-graph-view";
-import { SigmaControlView, VIEW_TYPE_SIGMA_CONTROL } from "sigma-control-view";
+import { Plugin, WorkspaceLeaf } from 'obsidian';
+import { SigmaGraphView, VIEW_TYPE_SIGMA } from 'sigma-graph-view';
+import { SigmaControlView, VIEW_TYPE_SIGMA_CONTROL } from 'sigma-control-view';
 
 // Main plugin class
 export default class SigmaGraphPlugin extends Plugin {
 	async onload() {
 		// Register the custom view
-		this.registerView(
-			VIEW_TYPE_SIGMA,
-			(leaf: WorkspaceLeaf) => new SigmaGraphView(leaf)
-		);
+		this.registerView(VIEW_TYPE_SIGMA, (leaf: WorkspaceLeaf) => new SigmaGraphView(leaf));
 
-		this.registerView(
-			VIEW_TYPE_SIGMA_CONTROL,
-			(leaf: WorkspaceLeaf) => new SigmaControlView(leaf)
-		);
+		this.registerView(VIEW_TYPE_SIGMA_CONTROL, (leaf: WorkspaceLeaf) => new SigmaControlView(leaf));
 
 		// Add ribbon icon
-		this.addRibbonIcon(
-			"dot-network",
-			"Open Sigma Graph View",
-			(evt: MouseEvent) => {
-				this.activateGraphView();
-			}
-		);
+		this.addRibbonIcon('dot-network', 'Open Sigma Graph View', (evt: MouseEvent) => {
+			this.activateGraphView();
+		});
 
 		// Add command to open graph view
 		this.addCommand({
-			id: "open-sigma-graph-view",
-			name: "Open Sigma Graph View",
+			id: 'open-sigma-graph-view',
+			name: 'Open Sigma Graph View',
 			callback: () => {
 				this.activateGraphView();
-			},
+			}
 		});
 
 		// This adds a complex command that can check whether the current state of the app allows execution of the command
 		this.addCommand({
-			id: "fit-sigma-graph-to-view",
-			name: "Fit sigma graph to view",
+			id: 'fit-sigma-graph-to-view',
+			name: 'Fit sigma graph to view',
 			checkCallback: (checking: boolean) => {
 				// Conditions to check
-				const sigmaView =
-					this.app.workspace.getActiveViewOfType(SigmaGraphView);
+				const sigmaView = this.app.workspace.getActiveViewOfType(SigmaGraphView);
 				if (sigmaView) {
 					// If checking is true, we're simply "checking" if the command can be run.
 					// If checking is false, then we want to actually perform the operation.
@@ -51,31 +40,27 @@ export default class SigmaGraphPlugin extends Plugin {
 					// This command will only show up in Command Palette when the check function returns true
 					return true;
 				}
-			},
+			}
 		});
 
 		this.addCommand({
-			id: "export-to-gexf",
-			name: "Export the graph as a GEFX file.",
+			id: 'export-to-gexf',
+			name: 'Export the graph as a GEFX file.',
 			checkCallback: (checking: boolean) => {
 				// Conditions to check
-				const sigmaView =
-					this.app.workspace.getActiveViewOfType(SigmaGraphView);
+				const sigmaView = this.app.workspace.getActiveViewOfType(SigmaGraphView);
 				if (sigmaView) {
 					// If checking is true, we're simply "checking" if the command can be run.
 					// If checking is false, then we want to actually perform the operation.
 					if (!checking) {
 						const gexfString = sigmaView.gexfString();
 						const rootPath = this.app.vault.getRoot().path;
-						this.app.vault.create(
-							`${rootPath}/graph.gexf`,
-							gexfString
-						);
+						this.app.vault.create(`${rootPath}/graph.gexf`, gexfString);
 					}
 					// This command will only show up in Command Palette when the check function returns true
 					return true;
 				}
-			},
+			}
 		});
 	}
 
@@ -113,7 +98,7 @@ export default class SigmaGraphPlugin extends Plugin {
 			leaf = this.app.workspace.getRightLeaf(false);
 			await leaf.setViewState({
 				type: VIEW_TYPE_SIGMA_CONTROL,
-				active: true,
+				active: true
 			});
 		}
 

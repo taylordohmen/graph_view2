@@ -15,3 +15,7 @@ If your plugin does not need CSS, delete this file.
     border: 2px solid green; /* Green border */
     cursor: pointer; /* Pointer/hand icon */
 }
+
+.sigma-control-separator {
+    height: 15px;
+}
