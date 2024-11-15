@@ -125,6 +125,7 @@ export class SigmaGraphView extends ItemView {
 
 		// compute communities and assign one to each node as an attribute
 		louvain.assign(this.graph);
+		const details = louvain.detailed(this.graph);
 		const communities = new Set<string>();
 		this.graph.forEachNode((_, attrs) => communities.add(attrs.community));
 		const communitiesArray = Array.from(communities);
