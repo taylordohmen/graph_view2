@@ -1,18 +1,23 @@
 import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { SigmaGraphView, VIEW_TYPE_SIGMA } from 'sigma-graph-view';
-import { SigmaControlView, VIEW_TYPE_SIGMA_CONTROL } from 'sigma-control-view';
+// import { SigmaControlView, VIEW_TYPE_SIGMA_CONTROL } from 'sigma-control-view';
 
 // Main plugin class
 export default class SigmaGraphPlugin extends Plugin {
+
 	async onload() {
 		// Register the custom view
 		this.registerView(VIEW_TYPE_SIGMA, (leaf: WorkspaceLeaf) => new SigmaGraphView(leaf));
 
-		this.registerView(VIEW_TYPE_SIGMA_CONTROL, (leaf: WorkspaceLeaf) => new SigmaControlView(leaf));
+		// this.registerView(
+		// 	VIEW_TYPE_SIGMA_CONTROL,
+		// 	(leaf: WorkspaceLeaf) => new SigmaControlView(leaf)
+		// );
 
 		// Add ribbon icon
 		this.addRibbonIcon('dot-network', 'Open Sigma Graph View', (evt: MouseEvent) => {
 			this.activateGraphView();
+			// this.activateControlView();
 		});
 
 		// Add command to open graph view
@@ -66,7 +71,27 @@ export default class SigmaGraphPlugin extends Plugin {
 
 	async onunload() {}
 
-	private async activateGraphView() {
+	// private async activateControlView(): Promise<void> {
+	// 	let leaf: WorkspaceLeaf | null = null;
+	// 	const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIGMA_CONTROL);
+
+	// 	if (leaves.length > 0) {
+	// 		// A leaf with our view already exists, use that
+	// 		leaf = leaves[0];
+	// 	} else {
+	// 		// Our view could not be found in the workspace, create a new leaf
+	// 		// in the right sidebar for it
+	// 		leaf = this.app.workspace.getRightLeaf(false);
+	// 		await leaf.setViewState({
+	// 			type: VIEW_TYPE_SIGMA_CONTROL,
+	// 			active: true
+	// 		});
+	// 	}
+	// 	// "Reveal" the leaf in case it is in a collapsed sidebar
+	// 	await this.app.workspace.revealLeaf(leaf);
+	// }
+
+	private async activateGraphView(): Promise<void> {
 		let leaf: WorkspaceLeaf | null;
 		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIGMA);
 
@@ -80,29 +105,6 @@ export default class SigmaGraphPlugin extends Plugin {
 		}
 
 		// Reveal the leaf
-		this.app.workspace.revealLeaf(leaf);
-
-		await this.activateControlView();
-	}
-
-	private async activateControlView() {
-		let leaf: WorkspaceLeaf | null = null;
-		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIGMA_CONTROL);
-
-		if (leaves.length > 0) {
-			// A leaf with our view already exists, use that
-			leaf = leaves[0];
-		} else {
-			// Our view could not be found in the workspace, create a new leaf
-			// in the right sidebar for it
-			leaf = this.app.workspace.getRightLeaf(false);
-			await leaf.setViewState({
-				type: VIEW_TYPE_SIGMA_CONTROL,
-				active: true
-			});
-		}
-
-		// "Reveal" the leaf in case it is in a collapsed sidebar
-		this.app.workspace.revealLeaf(leaf);
+		await this.app.workspace.revealLeaf(leaf);
 	}
 }

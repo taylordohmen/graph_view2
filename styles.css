@@ -7,15 +7,11 @@ If your plugin does not need CSS, delete this file.
 
 */
 
-.sigma-control-container {
-    display: grid;
-}
-
-.sigma-control-button {
-    border: 2px solid green; /* Green border */
-    cursor: pointer; /* Pointer/hand icon */
-}
-
-.sigma-control-separator {
-    height: 15px;
-}
+/* .sigma-graph-container .search-input {
+	top: 50px;
+	left: 10px;
+	z-index: 1;
+	background: var(--background-primary);
+	border-radius: 4px;
+	width: 200px;
+} */

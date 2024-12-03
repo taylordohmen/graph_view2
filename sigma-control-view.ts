@@ -1,4 +1,4 @@
-import { ButtonComponent, ItemView, WorkspaceLeaf } from 'obsidian';
+import { ButtonComponent, DropdownComponent, ItemView, ToggleComponent, WorkspaceLeaf } from 'obsidian';
 import { SigmaGraphView, VIEW_TYPE_SIGMA } from 'sigma-graph-view';
 
 export const VIEW_TYPE_SIGMA_CONTROL = 'sigma-control-view';
@@ -22,6 +22,8 @@ export class SigmaControlView extends ItemView {
 	private fa2Button: ButtonComponent;
 	private fa2State: number;
 	private noverlapState: number;
+	private layoutToggle: ToggleComponent;
+	public viewDropdown: DropdownComponent;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
@@ -40,7 +42,16 @@ export class SigmaControlView extends ItemView {
 	}
 
 	async onOpen(): Promise<void> {
-		this.sigmaView = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIGMA)[0].view;
+		const sigmaLeaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIGMA);
+
+		this.container.createDiv({
+			cls: 'sigma-control-separator'
+		});
+
+		this.viewDropdown = new DropdownComponent(this.container);
+		for ( const leaf of sigmaLeaves ) {
+			
+		}
 
 		this.container.createDiv({
 			cls: 'sigma-control-separator'
@@ -54,6 +65,10 @@ export class SigmaControlView extends ItemView {
 		this.container.createDiv({
 			cls: 'sigma-control-separator'
 		});
+
+		this.layoutToggle = new ToggleComponent(this.container);
+		this.layoutToggle.setValue(true);
+		this.layoutToggle.onChange((value: boolean) => !value);
 
 		this.circularButton = new ButtonComponent(this.container);
 		this.circularButton.setButtonText('Circular Layout');
