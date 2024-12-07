@@ -87,16 +87,14 @@ export class SigmaGraphView extends ItemView {
 			const person: boolean = file.parent?.name === 'People'; 
 			const fileCache = this.app.metadataCache.getFileCache(file);
 			const journal: boolean = fileCache.frontmatter && 'journal' in fileCache.frontmatter;
-			// if (file.parent?.name !== 'People' && !conference && file.parent?.name === file.basename) {
-			// 	console.log(fileCache);
-			// }
+
 			this.graph.addNode(file.path, {
 				label: name,
 				size: 1,
 				person: person,
 				conference: conference,
-				journal: journal,
-				highlighted: conference || journal
+				journal: journal
+				// highlighted: conference || journal
 			});
 		}
 
@@ -112,7 +110,8 @@ export class SigmaGraphView extends ItemView {
 					try {
 						this.graph.addEdge(file.path, targetFile.path, {
 							weight: 1,
-							color: '#bababa'
+							color: '#00000000'
+							// color: '#bababa'
 						});
 					} catch (e) {
 						// Handle cases where the edge already exists
@@ -162,7 +161,7 @@ export class SigmaGraphView extends ItemView {
 		);
 
 		// assign an (x, y) coordinate each node that respects the louvain communties
-		circlepack.assign(this.graph, { hierarchyAttributes: ['community'] });
+		circlepack.assign(this.graph, { hierarchyAttributes: ['community'], scale: 2 });
 
 		// Configure and initialize Sigma renderer
 		this.renderer = new Sigma(this.graph, this.container, {
@@ -179,6 +178,8 @@ export class SigmaGraphView extends ItemView {
 			itemSizesReference: 'positions',
 			zIndex: true
 		});
+
+		this.fitToView();
 	}
 
 	private async enableHoverEffects(): Promise<void> {
@@ -188,9 +189,9 @@ export class SigmaGraphView extends ItemView {
 		});
 
 		this.renderer.on('leaveNode', ({ node }) => {
-			if (!this.graph.getNodeAttribute(node, 'conference')) {
-				this.graph.setNodeAttribute(node, 'highlighted', false);
-			}
+			// if (!this.graph.getNodeAttribute(node, 'conference')) {
+			this.graph.setNodeAttribute(node, 'highlighted', false);
+			// }
 		});
 	}
 
