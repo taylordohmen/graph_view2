@@ -245,8 +245,9 @@ export class SigmaGraphView extends ItemView {
 		this.redrawButton = new ButtonComponent(this.controlsContainer);
 		this.redrawButton.setButtonText('Redraw Graph');
 		this.redrawButton.setClass('sigma-redraw-button');
-		this.redrawButton.onClick((evt: MouseEvent) => {
-			this.renderer.refresh();
+		this.redrawButton.onClick(async (evt: MouseEvent) => {
+			await this.onClose();
+			await this.onOpen();
 			new Notice('Redraw Complete');
 		});
 	}
