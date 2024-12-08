@@ -21,6 +21,7 @@ export class SigmaGraphView extends ItemView {
 	private layoutControls: DropdownComponent;
 	private redrawButton: ButtonComponent;
 	private fitButton: ButonComponent;
+	private searchContainer: HTMLElement;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
@@ -192,9 +193,13 @@ export class SigmaGraphView extends ItemView {
 	}
 
 	private async intializeSearch(): Promise<void> {
-		this.searchBar = new SearchComponent(this.controlsContainer);
+		this.searchContainer = this.controlsContainer.createDiv({
+			cls: 'sigma-search-container'
+		});
+		this.searchBar = new SearchComponent(this.searchContainer);
+		this.searchBar.inputEl.id = 'sigma-search';
 		this.searchBar.setPlaceholder('Search nodes...');
-		this.searchBar.clearButtonEl.id = 'search-clear-button';
+		this.searchBar.clearButtonEl.id = 'sigma-search-clear-button';
 
 		// Add search functionality
 		this.searchBar.onChange((searchTerm) => {
@@ -217,6 +222,7 @@ export class SigmaGraphView extends ItemView {
 
 	private async initializeLayoutControls(): Promise<void> {
 		this.layoutControls = new DropdownComponent(this.controlsContainer);
+		this.layoutControls.selectEl.id = 'sigma-layout-select';
 		this.layoutControls.addOptions({
 			circlePack: 'Circle Pack',
 			random: 'Random',
@@ -232,7 +238,6 @@ export class SigmaGraphView extends ItemView {
 			if (value === 'circular') {
 				await this.circularLayout();
 			}
-			this.fitToView();
 		});
 	}
 

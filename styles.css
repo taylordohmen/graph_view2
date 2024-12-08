@@ -6,20 +6,22 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
-
-.search-input-container {
-    display: flex;
-    justify-content: center;
-	align-items: center;
+.sigma-controls-container {
+    display: grid;
 }
 
-.search-input-container input {
-    display: block;
+.sigma-search-container {
+    justify-self: center;
     width: 33%;
+    position: absolute;
+}
+
+#sigma-search {
+    display: block;
     padding-inline-start: 36px;
 }
 
-.search-input-container:before {
+/* .sigma-controls-container.search-input-container:before {
     content: '';
     height: var(--search-icon-size);
     width: var(--search-icon-size);
@@ -28,9 +30,9 @@ If your plugin does not need CSS, delete this file.
     -webkit-mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'></circle><line x1='21' y1='21' x2='16.65' y2='16.65'></line></svg>");
     -webkit-mask-repeat: no-repeat;
     margin: 5px -25px;
-}
+} */
 
-.search-input-clear-button {
+/* .sigma-controls-container#sigma-search-clear-button {
     position: absolute;
     background: transparent;
     color: var(--search-clear-button-color);
@@ -41,13 +43,9 @@ If your plugin does not need CSS, delete this file.
     justify-content: center;
     align-items: center;
     transition: color 0.15s ease-in-out;
-}
+} */
 
-#search-clear-button {
-	position: unset;
-}
-
-select, .dropdown {
+#sigma-layout-select {
     cursor: pointer;
     position: absolute;
 }
