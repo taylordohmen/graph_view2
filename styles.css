@@ -7,11 +7,42 @@ If your plugin does not need CSS, delete this file.
 
 */
 
-/* .sigma-graph-container .search-input {
-	top: 50px;
-	left: 10px;
-	z-index: 1;
-	background: var(--background-primary);
-	border-radius: 4px;
-	width: 200px;
-} */
+.search-input-container {
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+.search-input-container input {
+    display: block;
+    width: 33%;
+    padding-inline-start: 36px;
+}
+
+.search-input-container:before {
+    content: '';
+    height: var(--search-icon-size);
+    width: var(--search-icon-size);
+    display: block;
+    background-color: var(--search-icon-color);
+    -webkit-mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'></circle><line x1='21' y1='21' x2='16.65' y2='16.65'></line></svg>");
+    -webkit-mask-repeat: no-repeat;
+    margin: 5px -25px;
+}
+
+.search-input-clear-button {
+    position: absolute;
+    background: transparent;
+    color: var(--search-clear-button-color);
+    cursor: var(--cursor);
+    height: var(--input-height);
+    width: 28px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: color 0.15s ease-in-out;
+}
+
+#search-clear-button {
+	position: unset;
+}

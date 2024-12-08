@@ -84,7 +84,7 @@ export class SigmaGraphView extends ItemView {
 		for (const file of files) {
 			const name: string = file.basename;
 			const conference: boolean = name === name.toUpperCase() && /^[A-Z]+$/.test(name);
-			const person: boolean = file.parent?.name === 'People'; 
+			const person: boolean = file.parent?.name === 'People';
 			const fileCache = this.app.metadataCache.getFileCache(file);
 			const journal: boolean = fileCache.frontmatter && 'journal' in fileCache.frontmatter;
 
@@ -183,7 +183,6 @@ export class SigmaGraphView extends ItemView {
 	}
 
 	private async enableHoverEffects(): Promise<void> {
-
 		this.renderer.on('enterNode', ({ node }) => {
 			this.graph.setNodeAttribute(node, 'highlighted', true);
 		});
@@ -206,6 +205,7 @@ export class SigmaGraphView extends ItemView {
 	private async intializeSearch(): Promise<void> {
 		this.searchBar = new SearchComponent(this.container);
 		this.searchBar.setPlaceholder('Search nodes...');
+		this.searchBar.clearButtonEl.id = 'search-clear-button';
 
 		// Add search functionality
 		this.searchBar.onChange((searchTerm) => {
