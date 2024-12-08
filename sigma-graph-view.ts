@@ -1,9 +1,6 @@
-import { ItemView, SearchComponent, TFile, WorkspaceLeaf } from 'obsidian';
+import { ButtonComponent, DropdownComponent, ItemView, SearchComponent, TFile, WorkspaceLeaf } from 'obsidian';
 import Graph from 'graphology';
 import { circlepack, circular, random } from 'graphology-layout';
-import FA2Layout from 'graphology-layout-forceatlas2/worker';
-import forceAtlas2 from 'graphology-layout-forceatlas2';
-import NoverlapLayout from 'graphology-layout-noverlap/worker';
 import louvain from 'graphology-communities-louvain';
 import * as gexf from 'graphology-gexf';
 import Sigma from 'sigma';
@@ -15,21 +12,25 @@ export const VIEW_TYPE_SIGMA = 'sigma-graph-view';
 
 // Custom View class for the graph
 export class SigmaGraphView extends ItemView {
-	private container: HTMLElement;
+	private graphContainer: HTMLElement;
+	private controlsContainer: HTMLElement;
 	private graph: Graph;
 	private renderer: Sigma;
 	private cancelCurrentAnimation: (() => void) | null;
-	private fa2Layout: FA2Layout;
-	private noverlapLayout: NoverlapLayout;
 	private searchBar: SearchComponent;
+	private layoutControls: DropdownComponent;
+	private redrawButton: ButtonComponent;
+	private fitButton: ButonComponent;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
 		this.navigation = true;
-		this.container = this.contentEl.createDiv({
+		this.graphContainer = this.contentEl.createDiv({
 			cls: 'sigma-graph-container'
 		});
-
+		this.controlsContainer = this.contentEl.createDiv({
+			cls: 'sigma-controls-container'
+		});
 		this.cancelCurrentAnimation = null;
 	}
 
@@ -44,32 +45,20 @@ export class SigmaGraphView extends ItemView {
 	async onOpen(): Promise<void> {
 		// Build the graph
 		await this.buildGraph();
+
 		// Render the graph
 		await this.renderGraph();
+
 		// define event listeners for hover behavior
 		await this.enableHoverEffects();
+
 		// Define event listeners for opening the corresponding note when right-clicking a node
 		await this.enableRightClick();
-		// Instantiate types for the more complicated layouts
-		const sensibleSettings = forceAtlas2.inferSettings(this.graph);
-		this.fa2Layout = new FA2Layout(this.graph, {
-			settings: sensibleSettings
-		});
-		this.noverlapLayout = new NoverlapLayout(this.graph);
-		// Active the controls view
-		// this.activateControlView();
 
-		// Create and configure search bar
-		await this.intializeSearch();
+		await this.configureControls();
 	}
 
 	async onClose(): Promise<void> {
-		if (this.fa2Layout) {
-			this.fa2Layout.kill();
-		}
-		if (this.noverlapLayout) {
-			this.noverlapLayout.kill();
-		}
 		if (this.renderer) {
 			this.renderer.kill();
 		}
@@ -135,14 +124,11 @@ export class SigmaGraphView extends ItemView {
 
 	private async renderGraph(): Promise<void> {
 		// Clear the container
-		this.container.empty();
+		this.graphContainer.empty();
 
 		// specify container dimensions and other properties
-		this.container.style.width = '100%';
-		this.container.style.height = '100%';
-		// this.container.style.position = 'absolute';
-		// this.container.style.top = '0';
-		// this.container.style.left = '0';
+		this.graphContainer.style.width = '100%';
+		this.graphContainer.style.height = '100%';
 
 		// compute communities and assign one to each node as an attribute
 		louvain.assign(this.graph);
@@ -161,11 +147,14 @@ export class SigmaGraphView extends ItemView {
 		);
 
 		// assign an (x, y) coordinate each node that respects the louvain communties
-		circlepack.assign(this.graph, { hierarchyAttributes: ['community'], scale: 2 });
+		circlepack.assign(this.graph, { 
+			hierarchyAttributes: ['community'] 
+		});
 
 		// Configure and initialize Sigma renderer
-		this.renderer = new Sigma(this.graph, this.container, {
+		this.renderer = new Sigma(this.graph, this.graphContainer, {
 			allowInvalidContainer: true,
+			// autocenter: true,
 			renderEdgeLabels: false,
 			renderLabels: false,
 			minCameraRatio: 0.01,
@@ -179,7 +168,7 @@ export class SigmaGraphView extends ItemView {
 			zIndex: true
 		});
 
-		this.fitToView();
+		await this.fitToView();
 	}
 
 	private async enableHoverEffects(): Promise<void> {
@@ -203,7 +192,7 @@ export class SigmaGraphView extends ItemView {
 	}
 
 	private async intializeSearch(): Promise<void> {
-		this.searchBar = new SearchComponent(this.container);
+		this.searchBar = new SearchComponent(this.controlsContainer);
 		this.searchBar.setPlaceholder('Search nodes...');
 		this.searchBar.clearButtonEl.id = 'search-clear-button';
 
@@ -226,15 +215,67 @@ export class SigmaGraphView extends ItemView {
 		});
 	}
 
-	public fitToView(): void {
+	private async initializeLayoutControls(): Promise<void> {
+		this.layoutControls = new DropdownComponent(this.controlsContainer);
+		this.layoutControls.addOptions({
+			circlePack: 'Circle Pack',
+			random: 'Random',
+			circular: 'Circular'
+		});
+		this.layoutControls.onChange(async (value: string) => {
+			if (value === 'circlePack') {
+				await this.circlepackLayout();
+			}
+			if (value === 'random') {
+				await this.randomLayout();
+			}
+			if (value === 'circular') {
+				await this.circularLayout();
+			}
+			this.fitToView();
+		});
+	}
+
+	private async initializeRedrawControls(): Promise<void> {
+		this.redrawButton = new ButtonComponent(this.controlsContainer);
+		this.redrawButton.setButtonText('Redraw Graph');
+		this.redrawButton.setClass('sigma-redraw-button');
+		this.redrawButton.onClick((evt: MouseEvent) => {
+			this.renderer.refresh();
+			new Notice('Redraw Complete');
+		});
+	}
+
+	private async initializeFitControls(): Promise<void> {
+		this.fitButton = new ButtonComponent(this.controlsContainer);
+		this.fitButton.setButtonText('Fit To View');
+		this.fitButton.setClass('sigma-fit-button');
+		this.fitButton.onClick((evt: MouseEvent) => {
+			this.fitToView();
+		});
+	}
+
+	private async configureControls(): Promise<void> {
+		// Create and configure search bar
+		await this.intializeSearch();
+
+		// Create and configure layout selection dropdown
+		await this.initializeLayoutControls();
+		
+		// Create and configure various control buttons
+		await this.initializeRedrawControls();
+		await this.initializeFitControls();
+	}
+
+	private fitToView(): void {
 		fitViewportToNodes(this.renderer, this.graph.nodes());
 	}
 
-	public gexfString(): string {
+	private async gexfString(): string {
 		return gexf.write(this.graph);
 	}
 
-	public circularLayout(): void {
+	private async circularLayout(): void {
 		if (this.cancelCurrentAnimation) {
 			this.cancelCurrentAnimation();
 		}
@@ -247,7 +288,7 @@ export class SigmaGraphView extends ItemView {
 		});
 	}
 
-	public randomLayout(): void {
+	private async randomLayout(): void {
 		if (this.cancelCurrentAnimation) {
 			this.cancelCurrentAnimation();
 		}
@@ -259,7 +300,7 @@ export class SigmaGraphView extends ItemView {
 		});
 	}
 
-	public circlepackLayout(): void {
+	private async circlepackLayout(): void {
 		if (this.cancelCurrentAnimation) {
 			this.cancelCurrentAnimation();
 		}
@@ -271,27 +312,5 @@ export class SigmaGraphView extends ItemView {
 			duration: 2000,
 			easing: 'linear'
 		});
-	}
-
-	public toggleFA2Layout(): void {
-		if (this.fa2Layout.isRunning()) {
-			this.fa2Layout.stop();
-		} else {
-			if (this.cancelCurrentAnimation) {
-				this.cancelCurrentAnimation();
-			}
-			this.fa2Layout.start();
-		}
-	}
-
-	public async toggleNoverlapLayout(): void {
-		if (this.noverlapLayout.isRunning()) {
-			this.noverlapLayout.stop();
-		} else {
-			if (this.cancelCurrentAnimation) {
-				this.cancelCurrentAnimation();
-			}
-			this.noverlapLayout.start();
-		}
 	}
 }

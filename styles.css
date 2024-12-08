@@ -8,9 +8,9 @@ If your plugin does not need CSS, delete this file.
 */
 
 .search-input-container {
-    position: relative;
     display: flex;
     justify-content: center;
+	align-items: center;
 }
 
 .search-input-container input {
@@ -45,4 +45,20 @@ If your plugin does not need CSS, delete this file.
 
 #search-clear-button {
 	position: unset;
+}
+
+select, .dropdown {
+    cursor: pointer;
+    position: absolute;
+}
+
+.sigma-redraw-button {
+    position: absolute;
+    justify-self: end;
+}
+
+.sigma-fit-button {
+	position: absolute;
+	justify-self: end;
+	margin-right: 120px;
 }
