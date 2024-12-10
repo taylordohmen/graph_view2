@@ -1,4 +1,12 @@
-import { ButtonComponent, DropdownComponent, ItemView, SearchComponent, TFile, WorkspaceLeaf } from 'obsidian';
+import {
+	ButtonComponent,
+	DropdownComponent,
+	ItemView,
+	SearchComponent,
+	SliderComponent,
+	TFile,
+	WorkspaceLeaf
+} from 'obsidian';
 import Graph from 'graphology';
 import { circlepack, circular, random } from 'graphology-layout';
 import louvain from 'graphology-communities-louvain';
@@ -7,8 +15,15 @@ import Sigma from 'sigma';
 import { animateNodes } from 'sigma/utils';
 import { fitViewportToNodes } from '@sigma/utils';
 import iwanthue from 'iwanthue';
+import { LouvainDetailsView, VIEW_TYPE_LOUVAIN } from 'louvain-details-view';
 
 export const VIEW_TYPE_SIGMA = 'sigma-graph-view';
+
+const layouts = {
+	random: 0,
+	circular: 1,
+	criclepack: 2
+};
 
 // Custom View class for the graph
 export class SigmaGraphView extends ItemView {
@@ -22,6 +37,9 @@ export class SigmaGraphView extends ItemView {
 	private redrawButton: ButtonComponent;
 	private fitButton: ButonComponent;
 	private searchContainer: HTMLElement;
+	private scaleSlider: SliderComponent;
+	private currentLayout: number;
+	private louvainView: LouvainDetailsView;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
@@ -33,6 +51,7 @@ export class SigmaGraphView extends ItemView {
 			cls: 'sigma-controls-container'
 		});
 		this.cancelCurrentAnimation = null;
+		this.icon = 'dot-network';
 	}
 
 	getViewType(): string {
@@ -148,9 +167,10 @@ export class SigmaGraphView extends ItemView {
 		);
 
 		// assign an (x, y) coordinate each node that respects the louvain communties
-		circlepack.assign(this.graph, { 
-			hierarchyAttributes: ['community'] 
+		circlepack.assign(this.graph, {
+			hierarchyAttributes: ['community']
 		});
+		this.currentLayout = layouts.circlepack;
 
 		// Configure and initialize Sigma renderer
 		this.renderer = new Sigma(this.graph, this.graphContainer, {
@@ -169,7 +189,9 @@ export class SigmaGraphView extends ItemView {
 			zIndex: true
 		});
 
-		await this.fitToView();
+		await this.activateLouvainView(details);
+
+		this.fitToView();
 	}
 
 	private async enableHoverEffects(): Promise<void> {
@@ -220,28 +242,37 @@ export class SigmaGraphView extends ItemView {
 		});
 	}
 
-	private async initializeLayoutControls(): Promise<void> {
+	private async initializeLayoutDropdown(): Promise<void> {
 		this.layoutControls = new DropdownComponent(this.controlsContainer);
 		this.layoutControls.selectEl.id = 'sigma-layout-select';
 		this.layoutControls.addOptions({
-			circlePack: 'Circle Pack',
+			circlepack: 'Circle Pack',
 			random: 'Random',
 			circular: 'Circular'
 		});
 		this.layoutControls.onChange(async (value: string) => {
-			if (value === 'circlePack') {
+			if (value === 'circlepack') {
 				await this.circlepackLayout();
+				this.currentLayout = layouts.circlepack;
+				this.scaleSlider.setLimits(0, 3, 0.1);
+				this.scaleSlider.setValue(1);
 			}
 			if (value === 'random') {
 				await this.randomLayout();
+				this.currentLayout = layouts.random;
+				this.scaleSlider.setLimits(0, 3000, 100);
+				this.scaleSlider.setValue(1000);
 			}
 			if (value === 'circular') {
 				await this.circularLayout();
+				this.currentLayout = layouts.circular;
+				this.scaleSlider.setLimits(0, 1000, 10);
+				this.scaleSlider.setValue(500);
 			}
 		});
 	}
 
-	private async initializeRedrawControls(): Promise<void> {
+	private async initializeRedrawButton(): Promise<void> {
 		this.redrawButton = new ButtonComponent(this.controlsContainer);
 		this.redrawButton.setButtonText('Redraw Graph');
 		this.redrawButton.setClass('sigma-redraw-button');
@@ -252,7 +283,7 @@ export class SigmaGraphView extends ItemView {
 		});
 	}
 
-	private async initializeFitControls(): Promise<void> {
+	private async initializeFitButton(): Promise<void> {
 		this.fitButton = new ButtonComponent(this.controlsContainer);
 		this.fitButton.setButtonText('Fit To View');
 		this.fitButton.setClass('sigma-fit-button');
@@ -261,62 +292,135 @@ export class SigmaGraphView extends ItemView {
 		});
 	}
 
+	private async initializeScaleSlider(): Promise<void> {
+		this.scaleSlider = new SliderComponent(this.controlsContainer);
+		this.scaleSlider.setLimits(0, 10, 0.1);
+		this.scaleSlider.setValue(1);
+		this.scaleSlider.setInstant(false);
+		this.scaleSlider.sliderEl.id = 'sigma-scale-slider';
+		this.scaleSlider.onChange(async (value: number) => {
+			if (this.currentLayout === layouts.random) {
+				await this.randomLayout(value);
+			}
+			if (this.currentLayout === layouts.circular) {
+				await this.circularLayout(value);
+			}
+			if (this.currentLayout === layouts.circlepack) {
+				await this.circlepackLayout(value);
+			}
+		});
+	}
+
 	private async configureControls(): Promise<void> {
 		// Create and configure search bar
 		await this.intializeSearch();
 
+		// Create and configure scale slider
+		await this.initializeScaleSlider();
+
 		// Create and configure layout selection dropdown
-		await this.initializeLayoutControls();
-		
+		await this.initializeLayoutDropdown();
+
 		// Create and configure various control buttons
-		await this.initializeRedrawControls();
-		await this.initializeFitControls();
+		await this.initializeRedrawButton();
+		await this.initializeFitButton();
 	}
 
 	private fitToView(): void {
 		fitViewportToNodes(this.renderer, this.graph.nodes());
 	}
 
-	private async gexfString(): string {
+	private async gexfString(): Promise<string> {
 		return gexf.write(this.graph);
 	}
 
-	private async circularLayout(): void {
+	private async circularLayout(scale?: number): Promise<void> {
 		if (this.cancelCurrentAnimation) {
 			this.cancelCurrentAnimation();
 		}
-		//since we want to use animations we need to process positions before applying them through animateNodes
-		const circularPositions = circular(this.graph, { scale: 500 });
-		//In other context, it's possible to apply the position directly we : circular.assign(graph, {scale:100})
+
+		let circularPositions;
+		if (typeof scale === 'undefined') {
+			//since we want to use animations we need to process positions before applying them through animateNodes
+			circularPositions = circular(this.graph);
+			// const circularPositions = circular(this.graph, { scale: 500 });
+			//In other context, it's possible to apply the position directly : circular.assign(graph, {scale:100})
+		} else {
+			circularPositions = circular(this.graph, { scale: scale });
+		}
+
 		this.cancelCurrentAnimation = animateNodes(this.graph, circularPositions, {
 			duration: 2000,
 			easing: 'linear'
 		});
 	}
 
-	private async randomLayout(): void {
+	private async randomLayout(scale?: number): Promise<void> {
 		if (this.cancelCurrentAnimation) {
 			this.cancelCurrentAnimation();
 		}
-		//since we want to use animations we need to process positions before applying them through animateNodes
-		const randomPositions = random(this.graph, { scale: 1000 });
+
+		let randomPositions;
+		if (typeof scale === 'undefined') {
+			//since we want to use animations we need to process positions before applying them through animateNodes
+			randomPositions = random(this.graph);
+			// const randomPositions = random(this.graph, { scale: 1000 });
+		} else {
+			randomPositions = random(this.graph, { scale: scale });
+		}
+
 		this.cancelCurrentAnimation = animateNodes(this.graph, randomPositions, {
 			duration: 2000,
 			easing: 'linear'
 		});
 	}
 
-	private async circlepackLayout(): void {
+	private async circlepackLayout(scale?: number): Promise<void> {
 		if (this.cancelCurrentAnimation) {
 			this.cancelCurrentAnimation();
 		}
-		//since we want to use animations we need to process positions before applying them through animateNodes
-		const circlepackPositions = circlepack(this.graph, {
-			hierarchyAttributes: ['community']
-		});
+
+		let circlepackPositions;
+		if (typeof scale === 'undefined') {
+			//since we want to use animations we need to process positions before applying them through animateNodes
+			circlepackPositions = circlepack(this.graph, {
+				hierarchyAttributes: ['community']
+			});
+		} else {
+			//since we want to use animations we need to process positions before applying them through animateNodes
+			circlepackPositions = circlepack(this.graph, {
+				hierarchyAttributes: ['community'],
+				scale: scale
+			});
+		}
+
 		this.cancelCurrentAnimation = animateNodes(this.graph, circlepackPositions, {
 			duration: 2000,
 			easing: 'linear'
 		});
+	}
+
+	private async activateLouvainView(details): Promise<void> {
+		let leaf: WorkspaceLeaf | null = null;
+		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_LOUVAIN);
+
+		if (leaves.length > 0) {
+			// A leaf with our view already exists, use that
+			leaf = leaves[0];
+		} else {
+			// Our view could not be found in the workspace, create a new leaf
+			// in the right sidebar for it
+			leaf = this.app.workspace.getRightLeaf(false);
+			await leaf.setViewState({
+				type: VIEW_TYPE_LOUVAIN,
+				active: true
+			});
+		}
+
+		this.louvainView = leaf.view;
+		this.louvainView.populate(details);
+
+		// "Reveal" the leaf in case it is in a collapsed sidebar
+		await this.app.workspace.revealLeaf(leaf);
 	}
 }

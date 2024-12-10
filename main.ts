@@ -1,6 +1,6 @@
 import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { SigmaGraphView, VIEW_TYPE_SIGMA } from 'sigma-graph-view';
-// import { SigmaControlView, VIEW_TYPE_SIGMA_CONTROL } from 'sigma-control-view';
+import { LouvainDetailsView, VIEW_TYPE_LOUVAIN } from 'louvain-details-view';
 
 // Main plugin class
 export default class SigmaGraphPlugin extends Plugin {
@@ -9,15 +9,14 @@ export default class SigmaGraphPlugin extends Plugin {
 		// Register the custom view
 		this.registerView(VIEW_TYPE_SIGMA, (leaf: WorkspaceLeaf) => new SigmaGraphView(leaf));
 
-		// this.registerView(
-		// 	VIEW_TYPE_SIGMA_CONTROL,
-		// 	(leaf: WorkspaceLeaf) => new SigmaControlView(leaf)
-		// );
+		this.registerView(
+			VIEW_TYPE_LOUVAIN,
+			(leaf: WorkspaceLeaf) => new LouvainDetailsView(leaf)
+		);
 
 		// Add ribbon icon
 		this.addRibbonIcon('dot-network', 'Open Sigma Graph View', (evt: MouseEvent) => {
 			this.activateGraphView();
-			// this.activateControlView();
 		});
 
 		// Add command to open graph view
@@ -30,23 +29,23 @@ export default class SigmaGraphPlugin extends Plugin {
 		});
 
 		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'fit-sigma-graph-to-view',
-			name: 'Fit sigma graph to view',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const sigmaView = this.app.workspace.getActiveViewOfType(SigmaGraphView);
-				if (sigmaView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						sigmaView.fitToView();
-					}
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
-		});
+		// this.addCommand({
+		// 	id: 'fit-sigma-graph-to-view',
+		// 	name: 'Fit sigma graph to view',
+		// 	checkCallback: (checking: boolean) => {
+		// 		// Conditions to check
+		// 		const sigmaView = this.app.workspace.getActiveViewOfType(SigmaGraphView);
+		// 		if (sigmaView) {
+		// 			// If checking is true, we're simply "checking" if the command can be run.
+		// 			// If checking is false, then we want to actually perform the operation.
+		// 			if (!checking) {
+		// 				sigmaView.fitToView();
+		// 			}
+		// 			// This command will only show up in Command Palette when the check function returns true
+		// 			return true;
+		// 		}
+		// 	}
+		// });
 
 		this.addCommand({
 			id: 'export-to-gexf',
@@ -70,26 +69,6 @@ export default class SigmaGraphPlugin extends Plugin {
 	}
 
 	async onunload() {}
-
-	// private async activateControlView(): Promise<void> {
-	// 	let leaf: WorkspaceLeaf | null = null;
-	// 	const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIGMA_CONTROL);
-
-	// 	if (leaves.length > 0) {
-	// 		// A leaf with our view already exists, use that
-	// 		leaf = leaves[0];
-	// 	} else {
-	// 		// Our view could not be found in the workspace, create a new leaf
-	// 		// in the right sidebar for it
-	// 		leaf = this.app.workspace.getRightLeaf(false);
-	// 		await leaf.setViewState({
-	// 			type: VIEW_TYPE_SIGMA_CONTROL,
-	// 			active: true
-	// 		});
-	// 	}
-	// 	// "Reveal" the leaf in case it is in a collapsed sidebar
-	// 	await this.app.workspace.revealLeaf(leaf);
-	// }
 
 	private async activateGraphView(): Promise<void> {
 		let leaf: WorkspaceLeaf | null;

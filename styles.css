@@ -8,6 +8,7 @@ If your plugin does not need CSS, delete this file.
 */
 .sigma-controls-container {
     display: grid;
+    position: relative;
 }
 
 .sigma-search-container {
@@ -21,42 +22,36 @@ If your plugin does not need CSS, delete this file.
     padding-inline-start: 36px;
 }
 
-/* .sigma-controls-container.search-input-container:before {
-    content: '';
-    height: var(--search-icon-size);
-    width: var(--search-icon-size);
-    display: block;
-    background-color: var(--search-icon-color);
-    -webkit-mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'></circle><line x1='21' y1='21' x2='16.65' y2='16.65'></line></svg>");
-    -webkit-mask-repeat: no-repeat;
-    margin: 5px -25px;
-} */
-
-/* .sigma-controls-container#sigma-search-clear-button {
-    position: absolute;
-    background: transparent;
-    color: var(--search-clear-button-color);
-    cursor: var(--cursor);
-    height: var(--input-height);
-    width: 28px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: color 0.15s ease-in-out;
-} */
-
 #sigma-layout-select {
+    left: 0;
     cursor: pointer;
     position: absolute;
 }
 
 .sigma-redraw-button {
     position: absolute;
-    justify-self: end;
+    right: 0;
 }
 
 .sigma-fit-button {
 	position: absolute;
-	justify-self: end;
+	right: 0;
 	margin-right: 120px;
+}
+
+#sigma-scale-slider {
+    left: 0;
+    margin-left: 150px;
+    margin-top: 15px;
+    width: 20%;
+    position: absolute;
+}
+
+.louvain-detail {
+    margin: 25px;
+}
+
+.louvain-detail-key {
+    color: var(--interactive-accent);
+    font-weight: bold;
 }
