@@ -225,7 +225,7 @@ export class SigmaGraphView extends ItemView {
 
 		// Add search functionality
 		this.searchBar.onChange((searchTerm) => {
-			if (seachterm) {
+			if (searchTerm) {
 				this.searchBar.setPlaceholder('');
 			} else {
 				this.searchBar.setPlaceholder('Search nodes...');
