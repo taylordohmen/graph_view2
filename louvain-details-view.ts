@@ -1,4 +1,4 @@
-import { ItemView, ValueComponent, WorkspaceLeaf } from 'obsidian';
+import { ItemView, WorkspaceLeaf } from 'obsidian';
 
 export const VIEW_TYPE_LOUVAIN = 'louvain-details-view';
 

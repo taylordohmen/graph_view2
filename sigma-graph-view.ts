@@ -126,14 +126,14 @@ export class SigmaGraphView extends ItemView {
 						// Handle cases where the edge already exists
 						console.debug('Edge already exists', e);
 					}
-					this.updateNodeAttributes(file.path);
-					this.updateNodeAttributes(targetFile.path);
+					this.updateNodeSize(file.path);
+					this.updateNodeSize(targetFile.path);
 				}
 			}
 		}
 	}
 
-	private updateNodeAttributes(node: string): void {
+	private updateNodeSize(node: string): void {
 		const conference: boolean = this.graph.getNodeAttribute(node, 'conference');
 		const journal: boolean = this.graph.getNodeAttribute(node, 'journal');
 		const person: boolean = this.graph.getNodeAttribute(node, 'person');
@@ -225,7 +225,13 @@ export class SigmaGraphView extends ItemView {
 
 		// Add search functionality
 		this.searchBar.onChange((searchTerm) => {
-			if (!searchTerm || searchTerm.length < 5) {
+			if (seachterm) {
+				this.searchBar.setPlaceholder('');
+			} else {
+				this.searchBar.setPlaceholder('Search nodes...');
+			}
+
+			if (!searchTerm || searchTerm.length < 4) {
 				// Reset all nodes to default state if search is empty
 				this.graph.forEachNode((node) => {
 					this.graph.setNodeAttribute(node, 'highlighted', false);
