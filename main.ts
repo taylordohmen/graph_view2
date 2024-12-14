@@ -1,17 +1,16 @@
 import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { SigmaGraphView, VIEW_TYPE_SIGMA } from 'sigma-graph-view';
-import { LouvainDetailsView, VIEW_TYPE_LOUVAIN } from 'louvain-details-view';
+import { SigmaDetailsView, VIEW_TYPE_SIGMA_DETAILS } from 'sigma-details-view';
 
 // Main plugin class
 export default class SigmaGraphPlugin extends Plugin {
-
 	async onload() {
 		// Register the custom view
 		this.registerView(VIEW_TYPE_SIGMA, (leaf: WorkspaceLeaf) => new SigmaGraphView(leaf));
 
 		this.registerView(
-			VIEW_TYPE_LOUVAIN,
-			(leaf: WorkspaceLeaf) => new LouvainDetailsView(leaf)
+			VIEW_TYPE_SIGMA_DETAILS,
+			(leaf: WorkspaceLeaf) => new SigmaDetailsView(leaf)
 		);
 
 		// Add ribbon icon

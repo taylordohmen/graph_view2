@@ -11,11 +11,13 @@ import Graph from 'graphology';
 import { circlepack, circular, random } from 'graphology-layout';
 import louvain from 'graphology-communities-louvain';
 import * as gexf from 'graphology-gexf';
+// import { hits } from 'graphology-metrics/centrality';
+// import { connectedComponents, stronglyConnectedComponents } from 'graphology-components'
 import Sigma from 'sigma';
 import { animateNodes } from 'sigma/utils';
 import { fitViewportToNodes } from '@sigma/utils';
 import iwanthue from 'iwanthue';
-import { LouvainDetailsView, VIEW_TYPE_LOUVAIN } from 'louvain-details-view';
+import { SigmaDetailsView, VIEW_TYPE_SIGMA_DETAILS } from 'sigma-details-view';
 
 export const VIEW_TYPE_SIGMA = 'sigma-graph-view';
 
@@ -39,7 +41,7 @@ export class SigmaGraphView extends ItemView {
 	private searchContainer: HTMLElement;
 	private scaleSlider: SliderComponent;
 	private currentLayout: number;
-	private louvainView: LouvainDetailsView;
+	private detailsView: SigmaDetailsView;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
@@ -146,10 +148,6 @@ export class SigmaGraphView extends ItemView {
 		// Clear the container
 		this.graphContainer.empty();
 
-		// specify container dimensions and other properties
-		this.graphContainer.style.width = '100%';
-		this.graphContainer.style.height = '100%';
-
 		// compute communities and assign one to each node as an attribute
 		louvain.assign(this.graph);
 		const details = louvain.detailed(this.graph);
@@ -189,7 +187,7 @@ export class SigmaGraphView extends ItemView {
 			zIndex: true
 		});
 
-		await this.activateLouvainView(details);
+		await this.activatedetailsView(details);
 
 		this.fitToView();
 	}
@@ -406,9 +404,9 @@ export class SigmaGraphView extends ItemView {
 		});
 	}
 
-	private async activateLouvainView(details): Promise<void> {
+	private async activatedetailsView(louvainDetails): Promise<void> {
 		let leaf: WorkspaceLeaf | null = null;
-		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_LOUVAIN);
+		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIGMA_DETAILS);
 
 		if (leaves.length > 0) {
 			// A leaf with our view already exists, use that
@@ -418,13 +416,26 @@ export class SigmaGraphView extends ItemView {
 			// in the right sidebar for it
 			leaf = this.app.workspace.getRightLeaf(false);
 			await leaf.setViewState({
-				type: VIEW_TYPE_LOUVAIN,
+				type: VIEW_TYPE_SIGMA_DETAILS,
 				active: true
 			});
 		}
 
-		this.louvainView = leaf.view;
-		this.louvainView.populate(details);
+		this.detailsView = leaf.view;
+		// const { hubs, authorities } = hits(this.graph, {
+		// 	maxIterations: 150,
+		// 	tolerance: 1.e-6
+		// });
+		const hubs = null;
+		const authorities = null;
+
+		// const CCs = connectedComponents(this.graph);
+		// console.log(CCs);
+
+		// const SCCs = stronglyConnectedComponents(this.graph);
+		// console.log(SCCs);
+
+		await this.detailsView.populate(louvainDetails, hubs, authorities);
 
 		// "Reveal" the leaf in case it is in a collapsed sidebar
 		await this.app.workspace.revealLeaf(leaf);
