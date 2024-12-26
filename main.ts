@@ -6,7 +6,10 @@ import { SigmaDetailsView, VIEW_TYPE_SIGMA_DETAILS } from 'sigma-details-view';
 export default class SigmaGraphPlugin extends Plugin {
 	async onload(): Promise<void> {
 		// Register the custom view
-		this.registerView(VIEW_TYPE_SIGMA, (leaf: WorkspaceLeaf): SigmaGraphView => new SigmaGraphView(leaf));
+		this.registerView(
+			VIEW_TYPE_SIGMA,
+			(leaf: WorkspaceLeaf): SigmaGraphView => new SigmaGraphView(leaf)
+		);
 
 		this.registerView(
 			VIEW_TYPE_SIGMA_DETAILS,
@@ -14,7 +17,7 @@ export default class SigmaGraphPlugin extends Plugin {
 		);
 
 		// Add ribbon icon
-		this.addRibbonIcon('dot-network', 'Open Sigma Graph View', (evt: MouseEvent): void => {
+		this.addRibbonIcon('dot-network', 'Open Sigma Graph View', (): void => {
 			this.activateGraphView();
 		});
 

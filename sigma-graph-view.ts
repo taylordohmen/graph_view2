@@ -8,16 +8,20 @@ import {
 	TFile,
 	WorkspaceLeaf
 } from 'obsidian';
+
 import Graph from 'graphology';
 import { circlepack, circular, random } from 'graphology-layout';
 import louvain, { type DetailedLouvainOutput } from 'graphology-communities-louvain';
 import * as gexf from 'graphology-gexf';
 // import { hits } from 'graphology-metrics/centrality';
 // import { connectedComponents, stronglyConnectedComponents } from 'graphology-components'
+
 import Sigma from 'sigma';
 import { animateNodes } from 'sigma/utils';
 import { fitViewportToNodes } from '@sigma/utils';
+
 import iwanthue from 'iwanthue';
+
 import { SigmaDetailsView, VIEW_TYPE_SIGMA_DETAILS } from 'sigma-details-view';
 
 export const VIEW_TYPE_SIGMA = 'sigma-graph-view';
@@ -99,13 +103,15 @@ export class SigmaGraphView extends ItemView {
 			const person: boolean = file.parent?.name === 'People';
 			const fileCache = this.app.metadataCache.getFileCache(file);
 			const journal = !!(fileCache && fileCache.frontmatter && 'journal' in fileCache.frontmatter);
+			const organization = file.parent?.name === 'Organizations';
 
 			this.graph.addNode(file.path, {
 				label: name,
 				size: 1,
 				person: person,
 				conference: conference,
-				journal: journal
+				journal: journal,
+				organization: organization
 				// highlighted: conference || journal
 			});
 		}
@@ -140,7 +146,8 @@ export class SigmaGraphView extends ItemView {
 		const conference: boolean = this.graph.getNodeAttribute(node, 'conference');
 		const journal: boolean = this.graph.getNodeAttribute(node, 'journal');
 		const person: boolean = this.graph.getNodeAttribute(node, 'person');
-		if (conference || journal || person) {
+		const organization: boolean = this.graph.getNodeAttribute(node, 'organization');
+		if (conference || journal || person || organization) {
 			this.graph.updateNodeAttribute(node, 'size', (n: number): number => n + 1 / n ** 2);
 		}
 	}

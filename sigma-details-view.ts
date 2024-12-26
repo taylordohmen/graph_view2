@@ -1,4 +1,5 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
+
 import { type DetailedLouvainOutput } from 'graphology-communities-louvain';
 
 export const VIEW_TYPE_SIGMA_DETAILS = 'sigma-louvainDetails-view';
@@ -26,7 +27,7 @@ export class SigmaDetailsView extends ItemView {
 
 	async onClose(): Promise<void> {}
 
-	public async populateLouvainDetails(louvainDetails: DetailedLouvainOutput): Promise<void> {
+	async populateLouvainDetails(louvainDetails: DetailedLouvainOutput): Promise<void> {
 		const {
 			count,
 			deltaComputations,
@@ -159,7 +160,7 @@ export class SigmaDetailsView extends ItemView {
 	// 	}
 	// }
 
-	public async populate(louvainDetails: DetailedLouvainOutput): Promise<void> { //, hubs, authorities): Promise<void> {
+	async populate(louvainDetails: DetailedLouvainOutput): Promise<void> { //, hubs, authorities): Promise<void> {
 		this.detailsContainer.empty();
 		await this.populateLouvainDetails(louvainDetails);
 		// await this.populateHITSDetails(hubs, authorities);
