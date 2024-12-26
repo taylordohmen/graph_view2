@@ -2,6 +2,7 @@ import {
 	ButtonComponent,
 	DropdownComponent,
 	ItemView,
+	Notice,
 	SearchComponent,
 	SliderComponent,
 	TFile,
@@ -9,7 +10,7 @@ import {
 } from 'obsidian';
 import Graph from 'graphology';
 import { circlepack, circular, random } from 'graphology-layout';
-import louvain from 'graphology-communities-louvain';
+import louvain, { type DetailedLouvainOutput } from 'graphology-communities-louvain';
 import * as gexf from 'graphology-gexf';
 // import { hits } from 'graphology-metrics/centrality';
 // import { connectedComponents, stronglyConnectedComponents } from 'graphology-components'
@@ -24,7 +25,7 @@ export const VIEW_TYPE_SIGMA = 'sigma-graph-view';
 const layouts = {
 	random: 0,
 	circular: 1,
-	criclepack: 2
+	circlepack: 2
 };
 
 // Custom View class for the graph
@@ -37,7 +38,7 @@ export class SigmaGraphView extends ItemView {
 	private searchBar: SearchComponent;
 	private layoutControls: DropdownComponent;
 	private redrawButton: ButtonComponent;
-	private fitButton: ButonComponent;
+	private fitButton: ButtonComponent;
 	private searchContainer: HTMLElement;
 	private scaleSlider: SliderComponent;
 	private currentLayout: number;
@@ -97,7 +98,7 @@ export class SigmaGraphView extends ItemView {
 			const conference: boolean = name === name.toUpperCase() && /^[A-Z]+$/.test(name);
 			const person: boolean = file.parent?.name === 'People';
 			const fileCache = this.app.metadataCache.getFileCache(file);
-			const journal: boolean = fileCache.frontmatter && 'journal' in fileCache.frontmatter;
+			const journal = !!(fileCache && fileCache.frontmatter && 'journal' in fileCache.frontmatter);
 
 			this.graph.addNode(file.path, {
 				label: name,
@@ -140,7 +141,7 @@ export class SigmaGraphView extends ItemView {
 		const journal: boolean = this.graph.getNodeAttribute(node, 'journal');
 		const person: boolean = this.graph.getNodeAttribute(node, 'person');
 		if (conference || journal || person) {
-			this.graph.updateNodeAttribute(node, 'size', (n) => n + 1 / n ** 2);
+			this.graph.updateNodeAttribute(node, 'size', (n: number): number => n + 1 / n ** 2);
 		}
 	}
 
@@ -152,7 +153,7 @@ export class SigmaGraphView extends ItemView {
 		louvain.assign(this.graph);
 		const details = louvain.detailed(this.graph);
 		const communities = new Set<string>();
-		this.graph.forEachNode((_, attrs) => communities.add(attrs.community));
+		this.graph.forEachNode((_, attrs): Set<string> => communities.add(attrs.community));
 		const communitiesArray = Array.from(communities);
 
 		// Determine colors, and color each node accordingly
@@ -193,11 +194,11 @@ export class SigmaGraphView extends ItemView {
 	}
 
 	private async enableHoverEffects(): Promise<void> {
-		this.renderer.on('enterNode', ({ node }) => {
+		this.renderer.on('enterNode', ({ node }): void => {
 			this.graph.setNodeAttribute(node, 'highlighted', true);
 		});
 
-		this.renderer.on('leaveNode', ({ node }) => {
+		this.renderer.on('leaveNode', ({ node }): void => {
 			// if (!this.graph.getNodeAttribute(node, 'conference')) {
 			this.graph.setNodeAttribute(node, 'highlighted', false);
 			// }
@@ -205,10 +206,14 @@ export class SigmaGraphView extends ItemView {
 	}
 
 	private async enableRightClick(): Promise<void> {
-		this.renderer.on('rightClickNode', async ({ node }) => {
+		this.renderer.on('rightClickNode', async ({ node }): Promise<void> => {
 			const newTab: WorkspaceLeaf = this.app.workspace.getLeaf('tab');
-			const nodeFile: TFile = this.app.vault.getFileByPath(node);
-			await newTab.openFile(nodeFile);
+			const nodeFile: TFile | null = this.app.vault.getFileByPath(node);
+			if (nodeFile) {
+				await newTab.openFile(nodeFile);
+			} else {
+				console.error(`File not found for node: ${node}`);
+			}
 		});
 	}
 
@@ -222,7 +227,7 @@ export class SigmaGraphView extends ItemView {
 		this.searchBar.clearButtonEl.id = 'sigma-search-clear-button';
 
 		// Add search functionality
-		this.searchBar.onChange((searchTerm) => {
+		this.searchBar.onChange((searchTerm): void => {
 			if (searchTerm) {
 				this.searchBar.setPlaceholder('');
 			} else {
@@ -231,14 +236,14 @@ export class SigmaGraphView extends ItemView {
 
 			if (!searchTerm || searchTerm.length < 4) {
 				// Reset all nodes to default state if search is empty
-				this.graph.forEachNode((node) => {
+				this.graph.forEachNode((node): void => {
 					this.graph.setNodeAttribute(node, 'highlighted', false);
 				});
 				return;
 			}
 
 			// Highlight nodes that match the search term
-			this.graph.forEachNode((node) => {
+			this.graph.forEachNode((node): void => {
 				const label = this.graph.getNodeAttribute(node, 'label');
 				const matches = label.toLowerCase().includes(searchTerm.toLowerCase());
 				this.graph.setNodeAttribute(node, 'highlighted', matches);
@@ -291,7 +296,7 @@ export class SigmaGraphView extends ItemView {
 		this.fitButton = new ButtonComponent(this.controlsContainer);
 		this.fitButton.setButtonText('Fit To View');
 		this.fitButton.setClass('sigma-fit-button');
-		this.fitButton.onClick((evt: MouseEvent) => {
+		this.fitButton.onClick((evt: MouseEvent): void => {
 			this.fitToView();
 		});
 	}
@@ -334,7 +339,7 @@ export class SigmaGraphView extends ItemView {
 		fitViewportToNodes(this.renderer, this.graph.nodes());
 	}
 
-	private async gexfString(): Promise<string> {
+	gexfString(): string {
 		return gexf.write(this.graph);
 	}
 
@@ -404,7 +409,7 @@ export class SigmaGraphView extends ItemView {
 		});
 	}
 
-	private async activatedetailsView(louvainDetails): Promise<void> {
+	private async activatedetailsView(louvainDetails: DetailedLouvainOutput): Promise<void> {
 		let leaf: WorkspaceLeaf | null = null;
 		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIGMA_DETAILS);
 
@@ -415,19 +420,24 @@ export class SigmaGraphView extends ItemView {
 			// Our view could not be found in the workspace, create a new leaf
 			// in the right sidebar for it
 			leaf = this.app.workspace.getRightLeaf(false);
-			await leaf.setViewState({
-				type: VIEW_TYPE_SIGMA_DETAILS,
-				active: true
-			});
+			if (leaf) {
+				await leaf.setViewState({
+					type: VIEW_TYPE_SIGMA_DETAILS,
+					active: true
+				});
+			} else {
+				console.error('Failed to get a leaf for Sigma Details View');
+				return;
+			}
 		}
 
-		this.detailsView = leaf.view;
+		this.detailsView = leaf.view as SigmaDetailsView;
 		// const { hubs, authorities } = hits(this.graph, {
 		// 	maxIterations: 150,
 		// 	tolerance: 1.e-6
 		// });
-		const hubs = null;
-		const authorities = null;
+		// const hubs = null;
+		// const authorities = null;
 
 		// const CCs = connectedComponents(this.graph);
 		// console.log(CCs);
@@ -435,7 +445,7 @@ export class SigmaGraphView extends ItemView {
 		// const SCCs = stronglyConnectedComponents(this.graph);
 		// console.log(SCCs);
 
-		await this.detailsView.populate(louvainDetails, hubs, authorities);
+		await this.detailsView.populate(louvainDetails);//, hubs, authorities);
 
 		// "Reveal" the leaf in case it is in a collapsed sidebar
 		await this.app.workspace.revealLeaf(leaf);

@@ -4,17 +4,17 @@ import { SigmaDetailsView, VIEW_TYPE_SIGMA_DETAILS } from 'sigma-details-view';
 
 // Main plugin class
 export default class SigmaGraphPlugin extends Plugin {
-	async onload() {
+	async onload(): Promise<void> {
 		// Register the custom view
-		this.registerView(VIEW_TYPE_SIGMA, (leaf: WorkspaceLeaf) => new SigmaGraphView(leaf));
+		this.registerView(VIEW_TYPE_SIGMA, (leaf: WorkspaceLeaf): SigmaGraphView => new SigmaGraphView(leaf));
 
 		this.registerView(
 			VIEW_TYPE_SIGMA_DETAILS,
-			(leaf: WorkspaceLeaf) => new SigmaDetailsView(leaf)
+			(leaf: WorkspaceLeaf): SigmaDetailsView => new SigmaDetailsView(leaf)
 		);
 
 		// Add ribbon icon
-		this.addRibbonIcon('dot-network', 'Open Sigma Graph View', (evt: MouseEvent) => {
+		this.addRibbonIcon('dot-network', 'Open Sigma Graph View', (evt: MouseEvent): void => {
 			this.activateGraphView();
 		});
 
@@ -22,34 +22,15 @@ export default class SigmaGraphPlugin extends Plugin {
 		this.addCommand({
 			id: 'open-sigma-graph-view',
 			name: 'Open Sigma Graph View',
-			callback: () => {
+			callback: (): void => {
 				this.activateGraphView();
 			}
 		});
 
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		// this.addCommand({
-		// 	id: 'fit-sigma-graph-to-view',
-		// 	name: 'Fit sigma graph to view',
-		// 	checkCallback: (checking: boolean) => {
-		// 		// Conditions to check
-		// 		const sigmaView = this.app.workspace.getActiveViewOfType(SigmaGraphView);
-		// 		if (sigmaView) {
-		// 			// If checking is true, we're simply "checking" if the command can be run.
-		// 			// If checking is false, then we want to actually perform the operation.
-		// 			if (!checking) {
-		// 				sigmaView.fitToView();
-		// 			}
-		// 			// This command will only show up in Command Palette when the check function returns true
-		// 			return true;
-		// 		}
-		// 	}
-		// });
-
 		this.addCommand({
 			id: 'export-to-gexf',
 			name: 'Export the graph as a GEFX file.',
-			checkCallback: (checking: boolean) => {
+			checkCallback: (checking: boolean): true | undefined => {
 				// Conditions to check
 				const sigmaView = this.app.workspace.getActiveViewOfType(SigmaGraphView);
 				if (sigmaView) {
@@ -67,7 +48,7 @@ export default class SigmaGraphPlugin extends Plugin {
 		});
 	}
 
-	async onunload() {}
+	async onunload(): Promise<void> {}
 
 	private async activateGraphView(): Promise<void> {
 		let leaf: WorkspaceLeaf | null;

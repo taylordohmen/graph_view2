@@ -1,4 +1,5 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
+import { type DetailedLouvainOutput } from 'graphology-communities-louvain';
 
 export const VIEW_TYPE_SIGMA_DETAILS = 'sigma-louvainDetails-view';
 
@@ -25,13 +26,10 @@ export class SigmaDetailsView extends ItemView {
 
 	async onClose(): Promise<void> {}
 
-	public async populateLouvainDetails(louvainDetails) {
+	public async populateLouvainDetails(louvainDetails: DetailedLouvainOutput): Promise<void> {
 		const {
-			communities,
 			count,
 			deltaComputations,
-			dendrogram,
-			level,
 			modularity,
 			moves,
 			nodesVisited,
@@ -59,18 +57,6 @@ export class SigmaDetailsView extends ItemView {
 		});
 		deltaContainer.createEl('span', {
 			text: `${deltaComputations}`,
-			cls: 'sigma-detail-value'
-		});
-
-		const levelContainer = this.detailsContainer.createEl('div', {
-			cls: 'sigma-detail'
-		});
-		levelContainer.createEl('span', {
-			text: 'Level: ',
-			cls: 'sigma-detail-key'
-		});
-		levelContainer.createEl('span', {
-			text: `${level}`,
 			cls: 'sigma-detail-value'
 		});
 
@@ -123,57 +109,57 @@ export class SigmaDetailsView extends ItemView {
 		});
 	}
 
-	public async populateHITSDetails(hubs, authorities) {
-		let topHubs = Object.entries(hubs)
-			.sort(([, a], [, b]) => b - a)
-			.slice(0, 25);
-		topHubs = topHubs.map(([path, score]) => {
-			const lastSlash = path.lastIndexOf('/');
-			const name = lastSlash > -1 ? path.substring(lastSlash + 1, path.length - 3) : path;
-			return `${name}: ${score}`;
-		});
-		console.log(topHubs);
+	// public async populateHITSDetails(hubs, authorities): Promise<void> {
+	// 	let topHubs = Object.entries(hubs)
+	// 		.sort(([, a], [, b]) => b - a)
+	// 		.slice(0, 25);
+	// 	topHubs = topHubs.map(([path, score]) => {
+	// 		const lastSlash = path.lastIndexOf('/');
+	// 		const name = lastSlash > -1 ? path.substring(lastSlash + 1, path.length - 3) : path;
+	// 		return `${name}: ${score}`;
+	// 	});
+	// 	console.log(topHubs);
 
-		const hubsContainer = this.detailsContainer.createEl('div', {
-			cls: 'sigma-detail'
-		});
-		hubsContainer.createEl('div', {
-			text: 'Hub Nodes',
-			cls: 'sigma-detail-key'
-		});
-		for (const hub of topHubs) {
-			hubsContainer.createEl('div', {
-				text: hub,
-				cls: 'sigma-hub'
-			});
-		}
+	// 	const hubsContainer = this.detailsContainer.createEl('div', {
+	// 		cls: 'sigma-detail'
+	// 	});
+	// 	hubsContainer.createEl('div', {
+	// 		text: 'Hub Nodes',
+	// 		cls: 'sigma-detail-key'
+	// 	});
+	// 	for (const hub of topHubs) {
+	// 		hubsContainer.createEl('div', {
+	// 			text: hub,
+	// 			cls: 'sigma-hub'
+	// 		});
+	// 	}
 
-		let topAuthorities = Object.entries(authorities)
-			.sort(([, a], [, b]) => b - a)
-			.slice(0, 25);
-		topAuthorities = topAuthorities.map(([path, score]) => {
-			const lastSlash = path.lastIndexOf('/');
-			const name = lastSlash > -1 ? path.substring(lastSlash + 1, path.length - 3) : path;
-			return `${name}: ${score}`;
-		});
-		console.log(topAuthorities);
+	// 	let topAuthorities = Object.entries(authorities)
+	// 		.sort(([, a], [, b]) => b - a)
+	// 		.slice(0, 25);
+	// 	topAuthorities = topAuthorities.map(([path, score]) => {
+	// 		const lastSlash = path.lastIndexOf('/');
+	// 		const name = lastSlash > -1 ? path.substring(lastSlash + 1, path.length - 3) : path;
+	// 		return `${name}: ${score}`;
+	// 	});
+	// 	console.log(topAuthorities);
 
-		const authortiesContainer = this.detailsContainer.createEl('div', {
-			cls: 'sigma-detail'
-		});
-		authortiesContainer.createEl('div', {
-			text: 'Authority Nodes',
-			cls: 'sigma-detail-key'
-		});
-		for (const authority of topAuthorities) {
-			authortiesContainer.createEl('div', {
-				text: authority,
-				cls: 'sigma-authority'
-			});
-		}
-	}
+	// 	const authortiesContainer = this.detailsContainer.createEl('div', {
+	// 		cls: 'sigma-detail'
+	// 	});
+	// 	authortiesContainer.createEl('div', {
+	// 		text: 'Authority Nodes',
+	// 		cls: 'sigma-detail-key'
+	// 	});
+	// 	for (const authority of topAuthorities) {
+	// 		authortiesContainer.createEl('div', {
+	// 			text: authority,
+	// 			cls: 'sigma-authority'
+	// 		});
+	// 	}
+	// }
 
-	public async populate(louvainDetails, hubs, authorities) {
+	public async populate(louvainDetails: DetailedLouvainOutput): Promise<void> { //, hubs, authorities): Promise<void> {
 		this.detailsContainer.empty();
 		await this.populateLouvainDetails(louvainDetails);
 		// await this.populateHITSDetails(hubs, authorities);
