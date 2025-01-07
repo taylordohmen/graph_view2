@@ -27,7 +27,7 @@ export class SigmaDetailsView extends ItemView {
 
 	async onClose(): Promise<void> {}
 
-	async populateLouvainDetails(louvainDetails: DetailedLouvainOutput): Promise<void> {
+	populateLouvainDetails(louvainDetails: DetailedLouvainOutput): void {
 		const {
 			count,
 			deltaComputations,
@@ -37,7 +37,7 @@ export class SigmaDetailsView extends ItemView {
 			resolution
 		} = louvainDetails;
 
-		const numberContainer = this.detailsContainer.createEl('div', {
+		const numberContainer: HTMLDivElement = this.detailsContainer.createEl('div', {
 			cls: 'sigma-detail'
 		});
 		numberContainer.createEl('span', {
@@ -49,7 +49,7 @@ export class SigmaDetailsView extends ItemView {
 			cls: 'sigma-detail-value'
 		});
 
-		const deltaContainer = this.detailsContainer.createEl('div', {
+		const deltaContainer: HTMLDivElement = this.detailsContainer.createEl('div', {
 			cls: 'sigma-detail'
 		});
 		deltaContainer.createEl('span', {
@@ -61,7 +61,7 @@ export class SigmaDetailsView extends ItemView {
 			cls: 'sigma-detail-value'
 		});
 
-		const modularityContainer = this.detailsContainer.createEl('div', {
+		const modularityContainer: HTMLDivElement = this.detailsContainer.createEl('div', {
 			cls: 'sigma-detail'
 		});
 		modularityContainer.createEl('span', {
@@ -73,7 +73,7 @@ export class SigmaDetailsView extends ItemView {
 			cls: 'sigma-detail-value'
 		});
 
-		const movesContainer = this.detailsContainer.createEl('div', {
+		const movesContainer: HTMLDivElement = this.detailsContainer.createEl('div', {
 			cls: 'sigma-detail'
 		});
 		movesContainer.createEl('span', {
@@ -85,7 +85,7 @@ export class SigmaDetailsView extends ItemView {
 			cls: 'sigma-detail-value'
 		});
 
-		const visitedContainer = this.detailsContainer.createEl('div', {
+		const visitedContainer: HTMLDivElement = this.detailsContainer.createEl('div', {
 			cls: 'sigma-detail'
 		});
 		visitedContainer.createEl('span', {
@@ -97,7 +97,7 @@ export class SigmaDetailsView extends ItemView {
 			cls: 'sigma-detail-value'
 		});
 
-		const resolutionContainer = this.detailsContainer.createEl('div', {
+		const resolutionContainer: HTMLDivElement = this.detailsContainer.createEl('div', {
 			cls: 'sigma-detail'
 		});
 		resolutionContainer.createEl('span', {
@@ -160,9 +160,9 @@ export class SigmaDetailsView extends ItemView {
 	// 	}
 	// }
 
-	async populate(louvainDetails: DetailedLouvainOutput): Promise<void> { //, hubs, authorities): Promise<void> {
+	populate(louvainDetails: DetailedLouvainOutput): void { //, hubs, authorities): Promise<void> {
 		this.detailsContainer.empty();
-		await this.populateLouvainDetails(louvainDetails);
+		this.populateLouvainDetails(louvainDetails);
 		// await this.populateHITSDetails(hubs, authorities);
 	}
 }

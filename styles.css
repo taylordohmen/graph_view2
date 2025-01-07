@@ -63,3 +63,15 @@ If your plugin does not need CSS, delete this file.
 	color: var(--interactive-accent);
 	font-weight: bold;
 }
+
+#sigma-scale-input {
+	width: 5%;
+    position: absolute;
+    left: 120px;
+}
+
+#sigma-resolution-input {
+	width: 5%;
+	position: absolute;
+	left: 200px;
+}

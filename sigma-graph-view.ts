@@ -1,27 +1,14 @@
-import {
-	ButtonComponent,
-	DropdownComponent,
-	ItemView,
-	Notice,
-	SearchComponent,
-	SliderComponent,
-	TFile,
-	WorkspaceLeaf
-} from 'obsidian';
-
+import { ButtonComponent, DropdownComponent, ItemView, Notice, SearchComponent, TextComponent, TFile, WorkspaceLeaf, CachedMetadata, LinkCache } from 'obsidian';
 import Graph from 'graphology';
 import { circlepack, circular, random } from 'graphology-layout';
 import louvain, { type DetailedLouvainOutput } from 'graphology-communities-louvain';
 import * as gexf from 'graphology-gexf';
 // import { hits } from 'graphology-metrics/centrality';
 // import { connectedComponents, stronglyConnectedComponents } from 'graphology-components'
-
 import Sigma from 'sigma';
 import { animateNodes } from 'sigma/utils';
 import { fitViewportToNodes } from '@sigma/utils';
-
 import iwanthue from 'iwanthue';
-
 import { SigmaDetailsView, VIEW_TYPE_SIGMA_DETAILS } from 'sigma-details-view';
 
 export const VIEW_TYPE_SIGMA = 'sigma-graph-view';
@@ -32,7 +19,6 @@ const layouts = {
 	circlepack: 2
 };
 
-// Custom View class for the graph
 export class SigmaGraphView extends ItemView {
 	private graphContainer: HTMLElement;
 	private controlsContainer: HTMLElement;
@@ -44,9 +30,13 @@ export class SigmaGraphView extends ItemView {
 	private redrawButton: ButtonComponent;
 	private fitButton: ButtonComponent;
 	private searchContainer: HTMLElement;
-	private scaleSlider: SliderComponent;
+	// private scaleSlider: SliderComponent;
+	private scaleControls: TextComponent;
+	private resolutionControls: TextComponent;
 	private currentLayout: number;
 	private detailsView: SigmaDetailsView;
+	private louvainResolution: number;
+	private layoutScale: number;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
@@ -59,6 +49,7 @@ export class SigmaGraphView extends ItemView {
 		});
 		this.cancelCurrentAnimation = null;
 		this.icon = 'dot-network';
+		this.louvainResolution = 1;
 	}
 
 	getViewType(): string {
@@ -76,13 +67,7 @@ export class SigmaGraphView extends ItemView {
 		// Render the graph
 		await this.renderGraph();
 
-		// define event listeners for hover behavior
-		await this.enableHoverEffects();
-
-		// Define event listeners for opening the corresponding note when right-clicking a node
-		await this.enableRightClick();
-
-		await this.configureControls();
+		this.configureControls();
 	}
 
 	async onClose(): Promise<void> {
@@ -94,14 +79,14 @@ export class SigmaGraphView extends ItemView {
 	private async buildGraph(): Promise<void> {
 		this.graph = new Graph({ type: 'undirected' });
 
-		const files = this.app.vault.getMarkdownFiles();
+		const files: Array<TFile> = this.app.vault.getMarkdownFiles();
 
 		// Add nodes for each file
 		for (const file of files) {
 			const name: string = file.basename;
 			const conference: boolean = name === name.toUpperCase() && /^[A-Z]+$/.test(name);
 			const person: boolean = file.parent?.name === 'People';
-			const fileCache = this.app.metadataCache.getFileCache(file);
+			const fileCache: CachedMetadata | null = this.app.metadataCache.getFileCache(file);
 			const journal = !!(fileCache && fileCache.frontmatter && 'journal' in fileCache.frontmatter);
 			const organization = file.parent?.name === 'Organizations';
 
@@ -118,9 +103,9 @@ export class SigmaGraphView extends ItemView {
 
 		// Add edges based on links between files
 		for (const file of files) {
-			const links = this.app.metadataCache.getFileCache(file)?.links || [];
+			const links: Array<LinkCache> = this.app.metadataCache.getFileCache(file)?.links || [];
 			for (const link of links) {
-				const targetFile = this.app.metadataCache.getFirstLinkpathDest(
+				const targetFile: TFile | null = this.app.metadataCache.getFirstLinkpathDest(
 					link.link,
 					file.path
 				);
@@ -157,11 +142,14 @@ export class SigmaGraphView extends ItemView {
 		this.graphContainer.empty();
 
 		// compute communities and assign one to each node as an attribute
-		louvain.assign(this.graph);
-		const details = louvain.detailed(this.graph);
+		louvain.assign(this.graph, {
+			fastLocalMoves: true,
+			resolution: this.louvainResolution || 1 
+		});
+		const details: DetailedLouvainOutput = louvain.detailed(this.graph);
 		const communities = new Set<string>();
 		this.graph.forEachNode((_, attrs): Set<string> => communities.add(attrs.community));
-		const communitiesArray = Array.from(communities);
+		const communitiesArray: Array<string> = Array.from(communities);
 
 		// Determine colors, and color each node accordingly
 		const palette: Record<string, string> = iwanthue(communities.size).reduce(
@@ -174,7 +162,8 @@ export class SigmaGraphView extends ItemView {
 
 		// assign an (x, y) coordinate each node that respects the louvain communties
 		circlepack.assign(this.graph, {
-			hierarchyAttributes: ['community']
+			hierarchyAttributes: ['community'],
+			scale: 1.5
 		});
 		this.currentLayout = layouts.circlepack;
 
@@ -195,24 +184,28 @@ export class SigmaGraphView extends ItemView {
 			zIndex: true
 		});
 
-		await this.activatedetailsView(details);
+		// define event listeners for hover behavior
+		this.enableHoverEffects();
+
+		// Define event listeners for opening the corresponding note when right-clicking a node
+		this.enableRightClick();
 
 		this.fitToView();
+		
+		this.activatedetailsView(details);
 	}
 
-	private async enableHoverEffects(): Promise<void> {
+	private enableHoverEffects(): void {
 		this.renderer.on('enterNode', ({ node }): void => {
 			this.graph.setNodeAttribute(node, 'highlighted', true);
 		});
 
 		this.renderer.on('leaveNode', ({ node }): void => {
-			// if (!this.graph.getNodeAttribute(node, 'conference')) {
 			this.graph.setNodeAttribute(node, 'highlighted', false);
-			// }
 		});
 	}
 
-	private async enableRightClick(): Promise<void> {
+	private enableRightClick(): void {
 		this.renderer.on('rightClickNode', async ({ node }): Promise<void> => {
 			const newTab: WorkspaceLeaf = this.app.workspace.getLeaf('tab');
 			const nodeFile: TFile | null = this.app.vault.getFileByPath(node);
@@ -224,7 +217,7 @@ export class SigmaGraphView extends ItemView {
 		});
 	}
 
-	private async intializeSearch(): Promise<void> {
+	private intializeSearch(): void {
 		this.searchContainer = this.controlsContainer.createDiv({
 			cls: 'sigma-search-container'
 		});
@@ -234,7 +227,7 @@ export class SigmaGraphView extends ItemView {
 		this.searchBar.clearButtonEl.id = 'sigma-search-clear-button';
 
 		// Add search functionality
-		this.searchBar.onChange((searchTerm): void => {
+		this.searchBar.onChange((searchTerm: string): void => {
 			if (searchTerm) {
 				this.searchBar.setPlaceholder('');
 			} else {
@@ -243,14 +236,14 @@ export class SigmaGraphView extends ItemView {
 
 			if (!searchTerm || searchTerm.length < 4) {
 				// Reset all nodes to default state if search is empty
-				this.graph.forEachNode((node): void => {
+				this.graph.forEachNode((node: string): void => {
 					this.graph.setNodeAttribute(node, 'highlighted', false);
 				});
 				return;
 			}
 
 			// Highlight nodes that match the search term
-			this.graph.forEachNode((node): void => {
+			this.graph.forEachNode((node: string): void => {
 				const label = this.graph.getNodeAttribute(node, 'label');
 				const matches = label.toLowerCase().includes(searchTerm.toLowerCase());
 				this.graph.setNodeAttribute(node, 'highlighted', matches);
@@ -258,7 +251,7 @@ export class SigmaGraphView extends ItemView {
 		});
 	}
 
-	private async initializeLayoutDropdown(): Promise<void> {
+	private initializeLayoutDropdown(): void {
 		this.layoutControls = new DropdownComponent(this.controlsContainer);
 		this.layoutControls.selectEl.id = 'sigma-layout-select';
 		this.layoutControls.addOptions({
@@ -266,80 +259,95 @@ export class SigmaGraphView extends ItemView {
 			random: 'Random',
 			circular: 'Circular'
 		});
-		this.layoutControls.onChange(async (value: string) => {
+		this.layoutControls.onChange(async (value: string): Promise<void> => {
 			if (value === 'circlepack') {
 				await this.circlepackLayout();
 				this.currentLayout = layouts.circlepack;
-				this.scaleSlider.setLimits(0, 3, 0.1);
-				this.scaleSlider.setValue(1);
+				// this.scaleSlider.setLimits(0, 3, 0.1);
+				// this.scaleSlider.setValue(1);
+				this.scaleControls.setValue('1.5');
 			}
 			if (value === 'random') {
 				await this.randomLayout();
 				this.currentLayout = layouts.random;
-				this.scaleSlider.setLimits(0, 3000, 100);
-				this.scaleSlider.setValue(1000);
+				// this.scaleSlider.setLimits(0, 3000, 100);
+				// this.scaleSlider.setValue(1000);
+				this.scaleControls.setValue('1000');
 			}
 			if (value === 'circular') {
 				await this.circularLayout();
 				this.currentLayout = layouts.circular;
-				this.scaleSlider.setLimits(0, 1000, 10);
-				this.scaleSlider.setValue(500);
+				// this.scaleSlider.setLimits(0, 1000, 10);
+				// this.scaleSlider.setValue(500);
+				this.scaleControls.setValue('500');
 			}
 		});
 	}
 
-	private async initializeRedrawButton(): Promise<void> {
+	private initializeRedrawButton(): void {
 		this.redrawButton = new ButtonComponent(this.controlsContainer);
 		this.redrawButton.setButtonText('Redraw Graph');
 		this.redrawButton.setClass('sigma-redraw-button');
-		this.redrawButton.onClick(async (evt: MouseEvent) => {
+		this.redrawButton.onClick(async (): Promise<void> => {
 			await this.onClose();
-			await this.onOpen();
+			await this.renderGraph();
 			new Notice('Redraw Complete');
 		});
 	}
 
-	private async initializeFitButton(): Promise<void> {
+	private initializeFitButton(): void {
 		this.fitButton = new ButtonComponent(this.controlsContainer);
 		this.fitButton.setButtonText('Fit To View');
 		this.fitButton.setClass('sigma-fit-button');
-		this.fitButton.onClick((evt: MouseEvent): void => {
+		this.fitButton.onClick((): void => {
 			this.fitToView();
 		});
 	}
 
-	private async initializeScaleSlider(): Promise<void> {
-		this.scaleSlider = new SliderComponent(this.controlsContainer);
-		this.scaleSlider.setLimits(0, 10, 0.1);
-		this.scaleSlider.setValue(1);
-		this.scaleSlider.setInstant(false);
-		this.scaleSlider.sliderEl.id = 'sigma-scale-slider';
-		this.scaleSlider.onChange(async (value: number) => {
+	private initializeScaleControls(): void {
+		this.scaleControls = new TextComponent(this.controlsContainer);
+		this.scaleControls.inputEl.id = 'sigma-scale-input';
+		this.scaleControls.setValue('1.5');
+		this.scaleControls.onChange(async (value: string): Promise<void> => {
+			this.layoutScale = parseFloat(value);
 			if (this.currentLayout === layouts.random) {
-				await this.randomLayout(value);
+				await this.randomLayout(this.layoutScale);
 			}
 			if (this.currentLayout === layouts.circular) {
-				await this.circularLayout(value);
+				await this.circularLayout(this.layoutScale);
 			}
 			if (this.currentLayout === layouts.circlepack) {
-				await this.circlepackLayout(value);
+				await this.circlepackLayout(this.layoutScale);
 			}
 		});
 	}
 
-	private async configureControls(): Promise<void> {
-		// Create and configure search bar
-		await this.intializeSearch();
+	private initializeResolutionControls(): void {
+		this.resolutionControls = new TextComponent(this.controlsContainer);
+		this.resolutionControls.inputEl.id = 'sigma-resolution-input';
+		this.resolutionControls.setValue('1');
+		this.resolutionControls.onChange(async (value: string): Promise<void> => {
+			this.louvainResolution = parseFloat(value);
+			await this.onClose();
+			await this.renderGraph();
+		});
+	}
 
-		// Create and configure scale slider
-		await this.initializeScaleSlider();
+	private configureControls(): void {
+		// Create and configure search bar
+		this.intializeSearch();
+
+		// Create and configure scale controls
+		this.initializeScaleControls();
+
+		this.initializeResolutionControls();
 
 		// Create and configure layout selection dropdown
-		await this.initializeLayoutDropdown();
+		this.initializeLayoutDropdown();
 
 		// Create and configure various control buttons
-		await this.initializeRedrawButton();
-		await this.initializeFitButton();
+		this.initializeRedrawButton();
+		this.initializeFitButton();
 	}
 
 	private fitToView(): void {
@@ -418,7 +426,7 @@ export class SigmaGraphView extends ItemView {
 
 	private async activatedetailsView(louvainDetails: DetailedLouvainOutput): Promise<void> {
 		let leaf: WorkspaceLeaf | null = null;
-		const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIGMA_DETAILS);
+		const leaves: Array<WorkspaceLeaf> = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIGMA_DETAILS);
 
 		if (leaves.length > 0) {
 			// A leaf with our view already exists, use that
@@ -452,7 +460,8 @@ export class SigmaGraphView extends ItemView {
 		// const SCCs = stronglyConnectedComponents(this.graph);
 		// console.log(SCCs);
 
-		await this.detailsView.populate(louvainDetails);//, hubs, authorities);
+		louvainDetails.resolution = this.louvainResolution;
+		this.detailsView.populate(louvainDetails);//, hubs, authorities);
 
 		// "Reveal" the leaf in case it is in a collapsed sidebar
 		await this.app.workspace.revealLeaf(leaf);
