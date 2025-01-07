@@ -118,7 +118,6 @@ export class SigmaGraphView extends ItemView {
 						});
 					} catch (e) {
 						// Handle cases where the edge already exists
-						console.debug('Edge already exists', e);
 					}
 					this.updateNodeSize(file.path);
 					this.updateNodeSize(targetFile.path);

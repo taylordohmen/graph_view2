@@ -23,9 +23,9 @@ export class SigmaDetailsView extends ItemView {
 		return 'Sigma Graph Details';
 	}
 
-	async onOpen(): Promise<void> {}
+	async onOpen(): Promise<void> { }
 
-	async onClose(): Promise<void> {}
+	async onClose(): Promise<void> { }
 
 	populateLouvainDetails(louvainDetails: DetailedLouvainOutput): void {
 		const {
@@ -89,7 +89,7 @@ export class SigmaDetailsView extends ItemView {
 			cls: 'sigma-detail'
 		});
 		visitedContainer.createEl('span', {
-			text: 'Visits per Node: ',
+			text: '# of times nodes were visited: ',
 			cls: 'sigma-detail-key'
 		});
 		visitedContainer.createEl('span', {
