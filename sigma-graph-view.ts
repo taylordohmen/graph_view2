@@ -30,7 +30,6 @@ export class SigmaGraphView extends ItemView {
 	private redrawButton: ButtonComponent;
 	private fitButton: ButtonComponent;
 	private searchContainer: HTMLElement;
-	// private scaleSlider: SliderComponent;
 	private scaleControls: TextComponent;
 	private resolutionControls: TextComponent;
 	private currentLayout: number;
@@ -61,12 +60,8 @@ export class SigmaGraphView extends ItemView {
 	}
 
 	async onOpen(): Promise<void> {
-		// Build the graph
 		await this.buildGraph();
-
-		// Render the graph
 		await this.renderGraph();
-
 		this.configureControls();
 	}
 
@@ -143,7 +138,7 @@ export class SigmaGraphView extends ItemView {
 		// compute communities and assign one to each node as an attribute
 		louvain.assign(this.graph, {
 			fastLocalMoves: true,
-			resolution: this.louvainResolution || 1 
+			resolution: this.louvainResolution || 1
 		});
 		const details: DetailedLouvainOutput = louvain.detailed(this.graph);
 		const communities = new Set<string>();
@@ -187,10 +182,10 @@ export class SigmaGraphView extends ItemView {
 		this.enableHoverEffects();
 
 		// Define event listeners for opening the corresponding note when right-clicking a node
-		this.enableRightClick();
+		this.enableDoubleClick();
 
 		this.fitToView();
-		
+
 		this.activatedetailsView(details);
 	}
 
@@ -204,14 +199,14 @@ export class SigmaGraphView extends ItemView {
 		});
 	}
 
-	private enableRightClick(): void {
-		this.renderer.on('rightClickNode', async ({ node }): Promise<void> => {
+	private enableDoubleClick(): void {
+		this.renderer.on('doubleClickNode', async ({ node }): Promise<void> => {
 			const newTab: WorkspaceLeaf = this.app.workspace.getLeaf('tab');
 			const nodeFile: TFile | null = this.app.vault.getFileByPath(node);
 			if (nodeFile) {
 				await newTab.openFile(nodeFile);
 			} else {
-				console.error(`File not found for node: ${node}`);
+				console.log(`File not found for node: ${node}`);
 			}
 		});
 	}

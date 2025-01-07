@@ -1,5 +1,4 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
-
 import { type DetailedLouvainOutput } from 'graphology-communities-louvain';
 
 export const VIEW_TYPE_SIGMA_DETAILS = 'sigma-louvainDetails-view';
