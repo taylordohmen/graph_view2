@@ -48,7 +48,8 @@ export class SigmaGraphView extends ItemView {
 		});
 		this.cancelCurrentAnimation = null;
 		this.icon = 'dot-network';
-		this.louvainResolution = 1;
+		this.louvainResolution = 3;
+		this.layoutScale = 1.75;
 	}
 
 	getViewType(): string {
@@ -127,7 +128,7 @@ export class SigmaGraphView extends ItemView {
 		const person: boolean = this.graph.getNodeAttribute(node, 'person');
 		const organization: boolean = this.graph.getNodeAttribute(node, 'organization');
 		if (conference || journal || person || organization) {
-			this.graph.updateNodeAttribute(node, 'size', (n: number): number => n + 1 / n ** 2);
+			this.graph.updateNodeAttribute(node, 'size', (n: number): number => n + 1 / n ** 1.5);
 		}
 	}
 
@@ -138,7 +139,7 @@ export class SigmaGraphView extends ItemView {
 		// compute communities and assign one to each node as an attribute
 		louvain.assign(this.graph, {
 			fastLocalMoves: true,
-			resolution: this.louvainResolution || 1
+			resolution: this.louvainResolution
 		});
 		const details: DetailedLouvainOutput = louvain.detailed(this.graph);
 		const communities = new Set<string>();
@@ -157,7 +158,7 @@ export class SigmaGraphView extends ItemView {
 		// assign an (x, y) coordinate each node that respects the louvain communties
 		circlepack.assign(this.graph, {
 			hierarchyAttributes: ['community'],
-			scale: 1.5
+			scale: this.layoutScale
 		});
 		this.currentLayout = layouts.circlepack;
 
@@ -257,22 +258,16 @@ export class SigmaGraphView extends ItemView {
 			if (value === 'circlepack') {
 				await this.circlepackLayout();
 				this.currentLayout = layouts.circlepack;
-				// this.scaleSlider.setLimits(0, 3, 0.1);
-				// this.scaleSlider.setValue(1);
-				this.scaleControls.setValue('1.5');
+				this.scaleControls.setValue('1.75');
 			}
 			if (value === 'random') {
 				await this.randomLayout();
 				this.currentLayout = layouts.random;
-				// this.scaleSlider.setLimits(0, 3000, 100);
-				// this.scaleSlider.setValue(1000);
 				this.scaleControls.setValue('1000');
 			}
 			if (value === 'circular') {
 				await this.circularLayout();
 				this.currentLayout = layouts.circular;
-				// this.scaleSlider.setLimits(0, 1000, 10);
-				// this.scaleSlider.setValue(500);
 				this.scaleControls.setValue('500');
 			}
 		});
@@ -301,7 +296,7 @@ export class SigmaGraphView extends ItemView {
 	private initializeScaleControls(): void {
 		this.scaleControls = new TextComponent(this.controlsContainer);
 		this.scaleControls.inputEl.id = 'sigma-scale-input';
-		this.scaleControls.setValue('1.5');
+		this.scaleControls.setValue(this.layoutScale.toString());
 		this.scaleControls.onChange(async (value: string): Promise<void> => {
 			this.layoutScale = parseFloat(value);
 			if (this.currentLayout === layouts.random) {
@@ -319,7 +314,7 @@ export class SigmaGraphView extends ItemView {
 	private initializeResolutionControls(): void {
 		this.resolutionControls = new TextComponent(this.controlsContainer);
 		this.resolutionControls.inputEl.id = 'sigma-resolution-input';
-		this.resolutionControls.setValue('1');
+		this.resolutionControls.setValue(this.louvainResolution.toString());
 		this.resolutionControls.onChange(async (value: string): Promise<void> => {
 			this.louvainResolution = parseFloat(value);
 			await this.onClose();
@@ -357,12 +352,10 @@ export class SigmaGraphView extends ItemView {
 			this.cancelCurrentAnimation();
 		}
 
+		//since we want to use animations we need to process positions before applying them through animateNodes
 		let circularPositions;
 		if (typeof scale === 'undefined') {
-			//since we want to use animations we need to process positions before applying them through animateNodes
 			circularPositions = circular(this.graph);
-			// const circularPositions = circular(this.graph, { scale: 500 });
-			//In other context, it's possible to apply the position directly : circular.assign(graph, {scale:100})
 		} else {
 			circularPositions = circular(this.graph, { scale: scale });
 		}
@@ -377,12 +370,11 @@ export class SigmaGraphView extends ItemView {
 		if (this.cancelCurrentAnimation) {
 			this.cancelCurrentAnimation();
 		}
-
+		
+		//since we want to use animations we need to process positions before applying them through animateNodes
 		let randomPositions;
 		if (typeof scale === 'undefined') {
-			//since we want to use animations we need to process positions before applying them through animateNodes
 			randomPositions = random(this.graph);
-			// const randomPositions = random(this.graph, { scale: 1000 });
 		} else {
 			randomPositions = random(this.graph, { scale: scale });
 		}
@@ -398,14 +390,13 @@ export class SigmaGraphView extends ItemView {
 			this.cancelCurrentAnimation();
 		}
 
+		//since we want to use animations we need to process positions before applying them through animateNodes
 		let circlepackPositions;
 		if (typeof scale === 'undefined') {
-			//since we want to use animations we need to process positions before applying them through animateNodes
 			circlepackPositions = circlepack(this.graph, {
 				hierarchyAttributes: ['community']
 			});
 		} else {
-			//since we want to use animations we need to process positions before applying them through animateNodes
 			circlepackPositions = circlepack(this.graph, {
 				hierarchyAttributes: ['community'],
 				scale: scale
@@ -440,6 +431,9 @@ export class SigmaGraphView extends ItemView {
 			}
 		}
 
+		// "Reveal" the leaf in case it is in a collapsed sidebar
+		await this.app.workspace.revealLeaf(leaf);
+
 		this.detailsView = leaf.view as SigmaDetailsView;
 		// const { hubs, authorities } = hits(this.graph, {
 		// 	maxIterations: 150,
@@ -456,8 +450,5 @@ export class SigmaGraphView extends ItemView {
 
 		louvainDetails.resolution = this.louvainResolution;
 		this.detailsView.populate(louvainDetails);//, hubs, authorities);
-
-		// "Reveal" the leaf in case it is in a collapsed sidebar
-		await this.app.workspace.revealLeaf(leaf);
 	}
 }

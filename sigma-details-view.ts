@@ -26,7 +26,7 @@ export class SigmaDetailsView extends ItemView {
 
 	async onClose(): Promise<void> { }
 
-	populateLouvainDetails(louvainDetails: DetailedLouvainOutput): void {
+	async populateLouvainDetails(louvainDetails: DetailedLouvainOutput): Promise<void> {
 		const {
 			count,
 			deltaComputations,
@@ -88,7 +88,7 @@ export class SigmaDetailsView extends ItemView {
 			cls: 'sigma-detail'
 		});
 		visitedContainer.createEl('span', {
-			text: '# of times nodes were visited: ',
+			text: 'Number of times nodes were visited: ',
 			cls: 'sigma-detail-key'
 		});
 		visitedContainer.createEl('span', {
@@ -159,7 +159,7 @@ export class SigmaDetailsView extends ItemView {
 	// 	}
 	// }
 
-	populate(louvainDetails: DetailedLouvainOutput): void { //, hubs, authorities): Promise<void> {
+	async populate(louvainDetails: DetailedLouvainOutput): Promise<void> { //, hubs, authorities): Promise<void> {
 		this.detailsContainer.empty();
 		this.populateLouvainDetails(louvainDetails);
 		// await this.populateHITSDetails(hubs, authorities);
