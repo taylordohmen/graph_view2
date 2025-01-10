@@ -183,7 +183,7 @@ export class SigmaGraphView extends ItemView {
 		this.enableHoverEffects();
 
 		// Define event listeners for opening the corresponding note when right-clicking a node
-		this.enableDoubleClick();
+		this.enableRightClick();
 
 		this.fitToView();
 
@@ -200,8 +200,8 @@ export class SigmaGraphView extends ItemView {
 		});
 	}
 
-	private enableDoubleClick(): void {
-		this.renderer.on('doubleClickNode', async ({ node }): Promise<void> => {
+	private enableRightClick(): void {
+		this.renderer.on('rightClickNode', async ({ node }): Promise<void> => {
 			const newTab: WorkspaceLeaf = this.app.workspace.getLeaf('tab');
 			const nodeFile: TFile | null = this.app.vault.getFileByPath(node);
 			if (nodeFile) {
