@@ -1,4 +1,4 @@
-import { ButtonComponent, DropdownComponent, ItemView, Notice, SearchComponent, TextComponent, TFile, WorkspaceLeaf, CachedMetadata, LinkCache } from 'obsidian';
+import { ButtonComponent, DropdownComponent, ItemView, Notice, SearchComponent, TextComponent, TFile, WorkspaceLeaf, LinkCache } from 'obsidian';
 import Graph from 'graphology';
 import { circlepack, circular, random } from 'graphology-layout';
 import louvain, { type DetailedLouvainOutput } from 'graphology-communities-louvain';
@@ -49,7 +49,7 @@ export class SigmaGraphView extends ItemView {
 		this.cancelCurrentAnimation = null;
 		this.icon = 'dot-network';
 		this.louvainResolution = 3;
-		this.layoutScale = 1.75;
+		this.layoutScale = 2;
 	}
 
 	getViewType(): string {
@@ -80,20 +80,10 @@ export class SigmaGraphView extends ItemView {
 		// Add nodes for each file
 		for (const file of files) {
 			const name: string = file.basename;
-			const conference: boolean = name === name.toUpperCase() && /^[A-Z]+$/.test(name);
-			const person: boolean = file.parent?.name === 'People';
-			const fileCache: CachedMetadata | null = this.app.metadataCache.getFileCache(file);
-			const journal = !!(fileCache && fileCache.frontmatter && 'journal' in fileCache.frontmatter);
-			const organization = file.parent?.name === 'Organizations';
 
 			this.graph.addNode(file.path, {
 				label: name,
-				size: 1,
-				person: person,
-				conference: conference,
-				journal: journal,
-				organization: organization
-				// highlighted: conference || journal
+				size: 1
 			});
 		}
 
@@ -123,13 +113,7 @@ export class SigmaGraphView extends ItemView {
 	}
 
 	private updateNodeSize(node: string): void {
-		const conference: boolean = this.graph.getNodeAttribute(node, 'conference');
-		const journal: boolean = this.graph.getNodeAttribute(node, 'journal');
-		const person: boolean = this.graph.getNodeAttribute(node, 'person');
-		const organization: boolean = this.graph.getNodeAttribute(node, 'organization');
-		if (conference || journal || person || organization) {
-			this.graph.updateNodeAttribute(node, 'size', (n: number): number => n + 1 / n ** 1.5);
-		}
+		this.graph.updateNodeAttribute(node, 'size', (n: number): number => n + 1 / n ** 1.5);
 	}
 
 	private async renderGraph(): Promise<void> {
@@ -187,7 +171,7 @@ export class SigmaGraphView extends ItemView {
 
 		this.fitToView();
 
-		this.activatedetailsView(details);
+		this.activateDetailsView(details);
 	}
 
 	private enableHoverEffects(): void {
@@ -339,7 +323,7 @@ export class SigmaGraphView extends ItemView {
 		this.initializeFitButton();
 	}
 
-	private fitToView(): void {
+	private async fitToView(): Promise<void> {
 		fitViewportToNodes(this.renderer, this.graph.nodes());
 	}
 
@@ -370,7 +354,7 @@ export class SigmaGraphView extends ItemView {
 		if (this.cancelCurrentAnimation) {
 			this.cancelCurrentAnimation();
 		}
-		
+
 		//since we want to use animations we need to process positions before applying them through animateNodes
 		let randomPositions;
 		if (typeof scale === 'undefined') {
@@ -409,7 +393,7 @@ export class SigmaGraphView extends ItemView {
 		});
 	}
 
-	private async activatedetailsView(louvainDetails: DetailedLouvainOutput): Promise<void> {
+	private async activateDetailsView(louvainDetails: DetailedLouvainOutput): Promise<void> {
 		let leaf: WorkspaceLeaf | null = null;
 		const leaves: Array<WorkspaceLeaf> = this.app.workspace.getLeavesOfType(VIEW_TYPE_SIGMA_DETAILS);
 

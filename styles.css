@@ -66,8 +66,8 @@ If your plugin does not need CSS, delete this file.
 
 #sigma-scale-input {
 	width: 5%;
-    position: absolute;
-    left: 120px;
+	position: absolute;
+	left: 120px;
 }
 
 #sigma-resolution-input {
